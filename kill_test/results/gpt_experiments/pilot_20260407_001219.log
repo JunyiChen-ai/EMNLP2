@@ -1,0 +1,17 @@
+2026-04-07 00:12:19,346 [INFO] GPT Experiment Pilot — models: ['rcd']
+2026-04-07 00:12:19,346 [INFO] Seeds: [42], Epochs: 5
+2026-04-07 00:12:19,452 [INFO] Data: train=744, valid=107, test=215
+2026-04-07 00:12:19,452 [INFO] 
+============================================================
+2026-04-07 00:12:19,452 [INFO] Running: rcd
+2026-04-07 00:12:19,452 [INFO] ============================================================
+2026-04-07 00:12:19,452 [INFO]   Seed 42...
+2026-04-07 00:12:20,477 [INFO]     RCD best alpha=0.1, beta=0.5
+2026-04-07 00:12:20,477 [INFO]   Seed 42: ACC=85.58, F1=85.06
+2026-04-07 00:12:20,477 [INFO] 
+  Summary for rcd (1 seeds):
+2026-04-07 00:12:20,477 [INFO]     ACC: mean=85.58, std=0.00
+2026-04-07 00:12:20,477 [INFO]     F1:  mean=85.06, std=0.00, worst=85.06, best=85.06
+2026-04-07 00:12:20,477 [INFO] 
+All results saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/seed_results_20260407_001219.json
+2026-04-07 00:12:20,477 [ERROR] No baseline results! Cannot compute verdicts.

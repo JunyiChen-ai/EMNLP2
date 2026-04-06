@@ -1,0 +1,25 @@
+.env
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Nested repository metadata
+**/.git/
+archive/moe_refs/
+
+# Local build artifacts
+build/
+*.o
+*.so
+
+# Large model and checkpoint artifacts
+*.pth
+*.pt
+
+# Large binary assets not needed for source publishing
+*.pack
+*.gif
+
+# Large experiment outputs
+archive/**/results/

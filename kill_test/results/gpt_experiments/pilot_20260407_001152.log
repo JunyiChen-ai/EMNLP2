@@ -1,0 +1,30 @@
+2026-04-07 00:11:52,843 [INFO] GPT Experiment Pilot — models: ['baseline']
+2026-04-07 00:11:52,843 [INFO] Seeds: [42], Epochs: 5
+2026-04-07 00:11:52,965 [INFO] Data: train=744, valid=107, test=215
+2026-04-07 00:11:52,965 [INFO] 
+============================================================
+2026-04-07 00:11:52,965 [INFO] Running: baseline
+2026-04-07 00:11:52,965 [INFO] ============================================================
+2026-04-07 00:11:52,965 [INFO]   Seed 42...
+2026-04-07 00:11:53,692 [INFO]   Seed 42: ACC=84.19, F1=83.85
+2026-04-07 00:11:53,692 [INFO] 
+  Summary for baseline (1 seeds):
+2026-04-07 00:11:53,692 [INFO]     ACC: mean=84.19, std=0.00
+2026-04-07 00:11:53,692 [INFO]     F1:  mean=83.85, std=0.00, worst=83.85, best=83.85
+2026-04-07 00:11:53,692 [INFO] 
+All results saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/seed_results_20260407_001152.json
+2026-04-07 00:11:53,693 [INFO] 
+============================================================
+2026-04-07 00:11:53,693 [INFO] FINAL RESULTS
+2026-04-07 00:11:53,693 [INFO] ============================================================
+2026-04-07 00:11:53,693 [INFO] 
+| Variant | Mean ACC | Std ACC | Mean F1 | Std F1 | Worst F1 | Best F1 | Δ Mean F1 | Verdict |
+|---------|----------|---------|---------|--------|----------|---------|-----------|---------|
+| baseline | 84.19 | 0.00 | 83.85 | 0.00 | 83.85 | 83.85 | +0.00 | Baseline |
+| gtt | — | — | — | — | — | — | — | Incomplete |
+| vmbt | — | — | — | — | — | — | — | Incomplete |
+| borf | — | — | — | — | — | — | — | Incomplete |
+| rcd | — | — | — | — | — | — | — | Incomplete |
+| cmde | — | — | — | — | — | — | — | Incomplete |
+2026-04-07 00:11:53,693 [INFO] 
+Summary saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/summary_20260407_001152.md

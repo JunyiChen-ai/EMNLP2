@@ -1,0 +1,16 @@
+2026-04-07 00:12:06,696 [INFO] GPT Experiment Pilot — models: ['vmbt']
+2026-04-07 00:12:06,696 [INFO] Seeds: [42], Epochs: 5
+2026-04-07 00:12:06,801 [INFO] Data: train=744, valid=107, test=215
+2026-04-07 00:12:06,801 [INFO] 
+============================================================
+2026-04-07 00:12:06,801 [INFO] Running: vmbt
+2026-04-07 00:12:06,801 [INFO] ============================================================
+2026-04-07 00:12:06,801 [INFO]   Seed 42...
+2026-04-07 00:12:07,675 [INFO]   Seed 42: ACC=86.05, F1=85.62
+2026-04-07 00:12:07,675 [INFO] 
+  Summary for vmbt (1 seeds):
+2026-04-07 00:12:07,675 [INFO]     ACC: mean=86.05, std=0.00
+2026-04-07 00:12:07,675 [INFO]     F1:  mean=85.62, std=0.00, worst=85.62, best=85.62
+2026-04-07 00:12:07,675 [INFO] 
+All results saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/seed_results_20260407_001206.json
+2026-04-07 00:12:07,675 [ERROR] No baseline results! Cannot compute verdicts.

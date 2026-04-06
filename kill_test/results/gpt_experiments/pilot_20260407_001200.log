@@ -1,0 +1,16 @@
+2026-04-07 00:12:00,040 [INFO] GPT Experiment Pilot — models: ['cmde']
+2026-04-07 00:12:00,040 [INFO] Seeds: [42], Epochs: 5
+2026-04-07 00:12:00,145 [INFO] Data: train=744, valid=107, test=215
+2026-04-07 00:12:00,145 [INFO] 
+============================================================
+2026-04-07 00:12:00,145 [INFO] Running: cmde
+2026-04-07 00:12:00,145 [INFO] ============================================================
+2026-04-07 00:12:00,145 [INFO]   Seed 42...
+2026-04-07 00:12:01,066 [INFO]   Seed 42: ACC=84.65, F1=84.35
+2026-04-07 00:12:01,067 [INFO] 
+  Summary for cmde (1 seeds):
+2026-04-07 00:12:01,067 [INFO]     ACC: mean=84.65, std=0.00
+2026-04-07 00:12:01,067 [INFO]     F1:  mean=84.35, std=0.00, worst=84.35, best=84.35
+2026-04-07 00:12:01,067 [INFO] 
+All results saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/seed_results_20260407_001200.json
+2026-04-07 00:12:01,067 [ERROR] No baseline results! Cannot compute verdicts.

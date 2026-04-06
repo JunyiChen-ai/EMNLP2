@@ -1,0 +1,38 @@
+[
+  {
+    "variant": "whole_mlp",
+    "seed": 42,
+    "acc": 86.05,
+    "f1": 85.71
+  },
+  {
+    "variant": "whole_mlp",
+    "seed": 43,
+    "acc": 86.05,
+    "f1": 85.75
+  },
+  {
+    "variant": "whole_mlp",
+    "seed": 44,
+    "acc": 84.65,
+    "f1": 84.39
+  },
+  {
+    "variant": "whole_mlp",
+    "seed": 45,
+    "acc": 88.84,
+    "f1": 88.42
+  },
+  {
+    "variant": "whole_mlp",
+    "seed": 46,
+    "acc": 88.37,
+    "f1": 87.96
+  },
+  {
+    "variant": "text_unit_attn",
+    "seed": 42,
+    "acc": 84.19,
+    "f1": 83.85,
+    "attn_stats": {
+      "mean_entropy": 

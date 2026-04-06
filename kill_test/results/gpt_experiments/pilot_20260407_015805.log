@@ -1,0 +1,13 @@
+2026-04-07 01:58:05,557 [INFO] GPT Experiment Pilot — models: ['rcd']
+2026-04-07 01:58:05,557 [INFO] Seeds: [42], Epochs: 5
+2026-04-07 01:58:05,637 [INFO] Detected 3 classes, weights: [1.0, 2.769585371017456, 8.347222328186035]
+2026-04-07 01:58:05,638 [INFO] Data: train=555, valid=80, test=163
+2026-04-07 01:58:05,638 [INFO] 
+============================================================
+2026-04-07 01:58:05,638 [INFO] Running: rcd
+2026-04-07 01:58:05,638 [INFO] ============================================================
+2026-04-07 01:58:05,638 [INFO]   Seed 42...
+2026-04-07 01:58:06,402 [ERROR]   Seed 42 FAILED: The size of tensor a (2) must match the size of tensor b (3) at non-singleton dimension 1
+2026-04-07 01:58:06,402 [INFO] 
+All results saved to /home/junyi/EMNLP2/kill_test/results/gpt_experiments/seed_results_20260407_015805.json
+2026-04-07 01:58:06,402 [ERROR] No baseline results! Cannot compute verdicts.

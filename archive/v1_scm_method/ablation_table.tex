@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\caption{Ablation study results (mean $\pm$ std over seeds). $^{*}$/$^{**}$/$^{***}$: $p<0.05$/$0.01$/$0.001$ (unpaired bootstrap, 10K resamples).}
+\label{tab:ablation}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+Variant & \multicolumn{2}{c}{HateMM} & \multicolumn{2}{c}{MHC\_En} & \multicolumn{2}{c}{MHC\_Ch} & \multicolumn{2}{c}{ImpliHateVid} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} 
+ & ACC & F1 & ACC & F1 & ACC & F1 & ACC & F1 \\
+\midrule
+\textbf{Full model} & \textbf{87.8}$\pm$2.4 & \textbf{87.1}$\pm$2.6 & \textbf{80.8}$\pm$1.7 & \textbf{75.5}$\pm$3.5 & \textbf{83.5}$\pm$2.3 & \textbf{80.0}$\pm$2.6 & \textbf{91.0}$\pm$1.1 & \textbf{91.0}$\pm$1.1 \\ \midrule
+w/o SCM (base only) & 80.3$\pm$1.9$^{***}$ & 79.4$\pm$2.0$^{***}$ & 74.2$\pm$2.4$^{***}$ & 64.0$\pm$7.2$^{***}$ & 73.2$\pm$1.6$^{***}$ & 68.2$\pm$2.3$^{***}$ & 85.5$\pm$0.7$^{***}$ & 85.5$\pm$0.7$^{***}$ \\
+w/o theory prompts & 87.8$\pm$1.8 & 87.4$\pm$1.8 & 79.5$\pm$1.2$^{***}$ & 74.1$\pm$2.2$^{**}$ & 81.8$\pm$1.8$^{***}$ & 77.9$\pm$2.3$^{***}$ & 92.7$\pm$0.7 & 92.6$\pm$0.7 \\
+w/o MoE (flat concat) & 87.4$\pm$1.8 & 86.6$\pm$2.1 & 81.7$\pm$2.0 & 76.6$\pm$4.5 & 83.8$\pm$2.7 & 81.1$\pm$3.0 & 90.2$\pm$0.9$^{***}$ & 90.1$\pm$0.9$^{***}$ \\
+w/o load balancing & 88.2$\pm$2.3 & 87.4$\pm$2.7 & 81.7$\pm$1.7 & 77.1$\pm$2.9 & 82.7$\pm$1.8$^{*}$ & 79.0$\pm$2.2$^{*}$ & 89.9$\pm$0.8$^{***}$ & 89.9$\pm$0.8$^{***}$ \\
+Single expert & 84.6$\pm$2.5$^{***}$ & 83.9$\pm$2.6$^{***}$ & 80.9$\pm$2.5 & 76.0$\pm$3.8 & 80.5$\pm$2.0$^{***}$ & 76.9$\pm$2.8$^{***}$ & 89.0$\pm$0.6$^{***}$ & 88.9$\pm$0.6$^{***}$ \\
+w/o QELS & 88.4$\pm$2.5 & 87.8$\pm$2.6 & 80.9$\pm$1.4 & 75.2$\pm$3.4 & 82.6$\pm$1.8$^{*}$ & 78.8$\pm$2.4$^{*}$ & 90.6$\pm$1.1 & 90.6$\pm$1.1 \\
+w/o MR\textsuperscript{2} & 88.5$\pm$2.1 & 87.8$\pm$2.4 & 81.3$\pm$1.8 & 76.8$\pm$3.9 & 81.5$\pm$2.1$^{***}$ & 77.3$\pm$3.0$^{***}$ & 90.6$\pm$1.0$^{*}$ & 90.6$\pm$1.0$^{*}$ \\
+Focal loss (replace MR\textsuperscript{2}) & 86.6$\pm$2.5$^{*}$ & 85.8$\pm$2.9$^{*}$ & 81.3$\pm$2.3 & 76.2$\pm$4.4 & 82.7$\pm$1.8$^{*}$ & 79.3$\pm$2.7 & 90.3$\pm$0.8$^{***}$ & 90.3$\pm$0.8$^{***}$ \\
+\bottomrule
+\end{tabular}}
+\end{table*}
