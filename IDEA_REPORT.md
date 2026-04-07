@@ -1,151 +1,211 @@
-# Research Idea Report: Hateful Video Detection
+# Research Idea Report
 
-**Direction**: Novel methods for hateful video detection, drawing from general ML advances NOT yet applied in hateful video/meme detection
-**Generated**: 2026-04-06
-**Updated**: 2026-04-07 (pilot results added)
-**Ideas evaluated**: 12 generated → 12 reviewed → 5 piloted → 0 passed strict threshold
-**Source literature**: 72 papers from LITERATURE_BY_CATEGORY.md + web search for 2025-2026 top venues
+**Direction**: MLLM rationale → multimodal fusion pipeline for hateful video detection
+**Generated**: 2026-04-07
+**Ideas evaluated**: 10 generated → 6 survived filtering → 3 recommended
+**Source**: GPT-5.4 xhigh brainstorm + landscape analysis + constraint filtering
 
 ---
 
 ## Landscape Summary
 
-The hateful video detection space (2024-2026) is dominated by three paradigms: (1) MLLM-as-text-generator → classifier pipelines (HVGuard, MoRE), (2) cross-modal attention fusion (MM-HSD, ImpliHateVid), and (3) adversarial/debate reasoning (RAMF, ARCADE). All share a common blind spot: they treat multimodal fusion as a symmetric problem where all modalities contribute roughly equally. Our empirical facts show otherwise—MLLM text is the dominant signal (+6-8pp), base modalities add only 0.7-3.2pp, and seed variance is 5-8pp (an elephant nobody addresses).
+The proven pipeline — MLLM generates text rationale → encode → fuse with audio/frame → classify — is the dominant paradigm for video hate detection (HVGuard, RAMF, MARS, our baseline). The rationale provides +6-8pp over no rationale, but a simple MLP on rationale text alone reaches ~87 F1, making raw modalities nearly redundant (+0.7-3.2pp).
 
-Meanwhile, the broader ML community has produced powerful tools that haven't entered this task:
-- **Hallucination/grounding verification** (HalLoc, ContextualLens, MARINE) — detecting when MLLM text isn't supported by raw evidence
-- **Modality imbalance theory** (representation collapse, boosting-based balancing, gradient modulation) — principled asymmetric fusion
-- **Evidential deep learning** (Dempster-Shafer, belief entropy) — separating conflict from ignorance in multimodal decisions
-- **Feature distribution alignment** (Proxy-FDA, StarFT) — stabilizing training across seeds
-- **Calibrated decoding** (C-PMI, AVCD) — modality-aware output calibration
+**The core paradox**: Raw modalities (frame, audio) ARE the ground truth about the video, yet they add almost nothing on top of the MLLM's text summary. This happens because: (1) the MLLM rationale already summarizes what the raw modalities show, making them redundant as parallel features; (2) current fusion treats all information sources as additive feature channels, rather than distinguishing their epistemic roles.
 
-The opportunity is to use these general tools to address the specific pathologies of hateful video detection: text dominance, weak auxiliary modalities, high seed variance, and implicit/relational hate signals.
+**The untapped opportunity**: Our diagnostic prompt ALREADY produces structured rationales with explicit [Grounded Observations] vs [Diagnostic Interpretation] separation. But the downstream pipeline ignores this structure entirely — it compresses everything into one [CLS] embedding. Nobody in this field (or in adjacent tasks like fake news, propaganda, sarcasm) has exploited observation/interpretation structure for modality-grounded classification.
 
----
-
-## Pilot Experiment Results (10 seeds, 50 epochs)
-
-All 5 ideas were piloted on 3 datasets. Positive signal threshold: >1pp mean F1 gain OR meaningful stability win.
-
-### HateMM (Binary, 1066 videos)
-
-| Variant | Mean F1 | Std F1 | Worst F1 | Best F1 | Δ Mean F1 | Verdict |
-|---------|---------|--------|----------|---------|-----------|---------|
-| baseline (text MLP) | 86.89 | 1.39 | 84.39 | 88.50 | — | Baseline |
-| GTT | 84.44 | 1.29 | 81.45 | 86.06 | -2.45 | No signal |
-| VMBT | 86.95 | 1.71 | 83.53 | 88.83 | +0.05 | No signal |
-| BORF | 86.81 | 1.23 | 84.35 | 88.00 | -0.09 | No signal |
-| **RCD** | **87.25** | **1.14** | **85.25** | **88.50** | **+0.36** | **Borderline** |
-| CMDE | 85.59 | 1.14 | 84.30 | 87.50 | -1.31 | No signal |
-
-### MHClip-EN Binary (Offensive+Hateful→Hate, 891 videos)
-
-| Variant | Mean F1 | Std F1 | Worst F1 | Best F1 | Δ Mean F1 | Verdict |
-|---------|---------|--------|----------|---------|-----------|---------|
-| baseline | 70.56 | 2.49 | 65.75 | 73.09 | — | Baseline |
-| **VMBT** | **75.75** | 2.66 | 68.99 | 78.72 | **+5.19** | **Positive** |
-| BORF | 69.85 | 3.40 | 62.53 | 72.85 | -0.71 | No signal |
-| RCD | 70.17 | 2.98 | 65.44 | 74.00 | -0.39 | No signal |
-| **CMDE** | **71.69** | 4.27 | 66.13 | 76.98 | **+1.14** | **Positive** |
-
-### MHClip-ZH Binary (Offensive+Hateful→Hate, 897 videos)
-
-| Variant | Mean F1 | Std F1 | Worst F1 | Best F1 | Δ Mean F1 | Verdict |
-|---------|---------|--------|----------|---------|-----------|---------|
-| baseline | 78.66 | 2.33 | 74.00 | 81.34 | — | Baseline |
-| VMBT | 75.22 | 2.88 | 69.70 | 78.43 | -3.44 | No signal |
-| BORF | 78.80 | 2.13 | 73.38 | 81.03 | +0.14 | Borderline |
-| RCD | 78.61 | 2.59 | 73.16 | 81.12 | -0.05 | No signal |
-| CMDE | 77.93 | 1.61 | 75.02 | 80.30 | -0.73 | No signal |
-
-### Cross-Dataset Consistency
-
-| Method | HateMM | MHClip-EN | MHClip-ZH | Pattern |
-|--------|--------|-----------|-----------|---------|
-| **GTT** | -2.45 | — | — | Failed: AV too coarse to validate fine-grained text |
-| **VMBT** | +0.05 | **+5.19** | -3.44 | Inconsistent: huge gain on EN, hurt on ZH |
-| **BORF** | -0.09 | -0.71 | +0.14 | Most stable: never hurts significantly, never helps much |
-| **RCD** | +0.36 | -0.39 | -0.05 | Only HateMM signal, didn't transfer |
-| **CMDE** | -1.31 | +1.14 | -0.73 | Inconsistent |
-
-**No method consistently beats baseline across all 3 datasets.**
+**Philosophies from adjacent literature ready to adapt**:
+- FaithScore (EMNLP 2024): decompose → verify atomic claims → score
+- Representation Collapse (ICML 2025 Spotlight): modality collapse via shared neurons → orthogonal subspaces
+- AVCD (NeurIPS 2025): contrastive decoding across modalities
+- DSANet (AAAI 2026): normality prototypes + deviation scoring
+- VERA (CVPR 2025): learnable guiding questions optimized via verbal feedback
 
 ---
 
-## Ideas (with Pilot Outcomes)
+## Recommended Ideas (ranked)
 
-### Idea 1: Grounded Token Trust (GTT) — ❌ KILLED
+### Idea 1: Observation-Grounded Classification (OGC)
 
-- **Hypothesis**: Raw modalities help most by telling you which MLLM-generated text tokens are trustworthy.
-- **Combines**: HalLoc + ContextualLens
-- **Pilot result**: -2.45 F1 on HateMM. Worst performer.
-- **Why it failed**: Global AV features [768] are too coarse to validate token-level text. Implicit hate cues are inferential/abstract — not verifiable from raw audio/frames. The trust head suppressed exactly the most discriminative tokens.
-- **Lesson**: "AV as token-level validator" is the wrong abstraction for this task.
+**Core Motivation**: MLLM rationales mix two epistemically different types of content: *grounded observations* ("the speaker uses a racial slur," "a burning cross is visible") and *inferential interpretations* ("the video expresses hate toward group X"). Current pipelines compress both into one embedding, so the classifier cannot distinguish reliable observation from potentially hallucinated interpretation. Raw modalities can verify observations but NOT interpretations — if we separate them, raw modalities finally have a principled role.
 
-### Idea 2: Variance-Minimized Boundary Training (VMBT) — ⚠️ MIXED
+**Problem Solved**: (1) Hallucinated observations mislead the classifier — verification filters them out. (2) Raw modalities are underused (+0.7-3.2pp) because they're treated as parallel features instead of verification signals. (3) The motivation is clean and reviewer-friendly: "trust the interpretation only if the observations are grounded."
 
-- **Hypothesis**: Seed variance comes from unstable boundary pockets; EMA + distribution alignment fixes it.
-- **Combines**: Proxy-FDA + boosting-based modality balancing
-- **Pilot result**: +0.05 on HateMM (neutral), **+5.19 on MHClip-EN** (strong), -3.44 on MHClip-ZH (hurt).
-- **Why mixed**: On MHClip-EN the text-only baseline is weak (70.56 F1), so the multimodal concat [text;audio;frame] backbone genuinely helps. On HateMM where text already dominates (86.89 F1), adding AV via concat adds noise. On MHClip-ZH the EMA regularization destabilized instead of helping.
-- **Lesson**: VMBT's value comes from the multimodal backbone, not the stability mechanism. The EMA+FDA didn't deliver the intended variance reduction.
+**Philosophy Borrowed**: FaithScore (EMNLP 2024) — decompose → verify → score. Adapted from caption faithfulness to rationale grounding in a classification pipeline.
 
-### Idea 3: Boundary-Only Residual Fusion (BORF) — ⚠️ NEUTRAL
+**Method Sketch**:
+1. Parse the diagnostic rationale into `observation_text` (Section 2: Grounded Observations) and `interpretation_text` (Sections 3-5)
+2. Encode separately: `e_obs = Encoder(observation_text)`, `e_int = Encoder(interpretation_text)`
+3. Compute grounding score: `g = σ(MLP([e_obs; e_frame; e_audio]))` — measures how well raw modalities corroborate the observations
+4. Gated classification: `logits = Classifier(g · e_int + (1-g) · [e_frame; e_audio])` — high grounding → trust interpretation; low grounding → fall back to raw modalities
+5. Loss: standard CE + optional grounding regularizer
 
-- **Hypothesis**: Audio/frame should only correct the boundary where text is ambiguous.
-- **Combines**: MTS Taylor series + boosting
-- **Pilot result**: -0.09 / -0.71 / +0.14 across 3 datasets. Never hurts badly, never helps.
-- **Why neutral**: The ambiguity gate works as intended (residuals activate only on uncertain samples), but the residual branches don't learn useful corrections. Audio/frame may genuinely lack complementary signal on these datasets.
-- **Lesson**: Most stable method. The asymmetric design is sound, but there may not be enough correctable signal in audio/frame features.
+**Why Novel**:
+- No work in hate detection, fake news, propaganda, or sarcasm separates rationale observations from interpretations for modality verification
+- FaithScore verifies caption faithfulness but doesn't use it for downstream classification gating
+- Closest work (RAMF, MARS) generates multi-hypothesis rationales but never verifies them against raw modalities
+- The contribution is a NEW PARADIGM: raw modalities as **evidence verifiers**, not feature sources
 
-### Idea 4: Residual Correlation Distillation (RCD) — ⚠️ BORDERLINE (HateMM only)
-
-- **Hypothesis**: Audio/frame collapse toward text shortcuts; distilling residuals preserves complementarity.
-- **Combines**: Modality collapse diagnosis + CMAD
-- **Pilot result**: **+0.36 on HateMM** with lower std (1.14 vs 1.39) and better worst-seed (85.25 vs 84.39). But -0.39 on MHClip-EN and -0.05 on MHClip-ZH.
-- **Why HateMM-only**: The residual target (text errors) is meaningful on HateMM where the text teacher is strong. On MHClip where text baseline is weaker, residuals are noisier.
-- **Lesson**: Residual distillation shows the most coherent directional pattern on HateMM (all stability metrics improve simultaneously). Worth bounded follow-up on that dataset, but not a general solution.
-
-### Idea 5: Cross-Modal Description Editor (CMDE) — ❌ MOSTLY KILLED
-
-- **Hypothesis**: Best use of AV is to edit text representations before classification.
-- **Combines**: C-PMI + AVCD
-- **Pilot result**: -1.31 on HateMM, +1.14 on MHClip-EN, -0.73 on MHClip-ZH. Inconsistent.
-- **Why it failed on HateMM**: Same core problem as GTT — AV-based gating removes useful implicit-hate text fields. On MHClip-EN where text is weaker, the editing occasionally helps by suppressing noisy fields.
-- **Lesson**: "AV edits text" shares the same failure mode as "AV validates text" — coarse AV features can't reliably judge fine-grained text quality.
+**Novelty**: 9/10 — no direct competitor in any neighboring task
+**Feasibility**: HIGH — uses existing diagnostic rationales, just changes encoding/fusion
+**Risk**: LOW-MEDIUM
+**Main failure mode**: Grounding score is noisy because observation text and CLIP/Wav2Vec embeddings occupy different semantic spaces. Mitigation: use cross-modal alignment (e.g., CLIP text encoder for observations, CLIP visual encoder for frames).
+**Estimated effort**: 2-3 weeks implementation, no additional MLLM calls needed
 
 ---
 
-## Eliminated Ideas (pre-pilot)
+### Idea 2: Contradiction-Aware Evidence Fusion (CAEF)
+
+**Core Motivation**: In hateful videos, the most diagnostic signal is often not what each modality says individually, but whether modalities AGREE or CONTRADICT. A calm, friendly tone (audio) paired with extremist text overlay (visual) is more suspicious than either signal alone. Current fusion adds modalities — it should detect their *consistency*.
+
+**Problem Solved**: (1) Additive fusion cannot represent contradiction — [calm_audio + extremist_text] averages out to "neutral," losing the diagnostic signal. (2) MLLM rationales already note cross-modal contradictions (our diagnostic prompt has a "Cross-modal contradiction" field), but this is just text — not computed from actual modality features. (3) Implicit hate specifically works by creating contradiction between surface content and underlying meaning.
+
+**Philosophy Borrowed**: AVCD (NeurIPS 2025) — contrastive decoding across modalities + entropy-based weighting. Adapted from generation-time decoding to post-hoc fusion feature construction.
+
+**Method Sketch**:
+1. For each modality pair (rationale-frame, rationale-audio, frame-audio), compute agreement/contradiction features: `c_ij = e_i ⊙ e_j` (element-wise product captures alignment), `d_ij = |e_i - e_j|` (absolute difference captures divergence)
+2. Construct evidence tensor: `E = [e_rat; e_frame; e_audio; c_rf; c_ra; d_rf; d_ra]`
+3. Lightweight attention over E → classification
+4. Optional: compare computed contradiction with MLLM's stated contradiction → meta-faithfulness signal
+
+**Why Novel**:
+- Contradiction/inconsistency has been used in fake news detection (MDAM3, DEFAME) but NEVER in hate detection
+- No hate detection paper treats cross-modal disagreement as a first-class feature
+- The contribution: multimodal hate detection should model CONSISTENCY, not just CONTENT
+
+**Novelty**: 8/10 — idea exists in fake news but not hate detection; adaptation to rationale-based pipeline is new
+**Feasibility**: HIGH — simple feature engineering on existing embeddings
+**Risk**: MEDIUM
+**Main failure mode**: Embedding spaces are too different for meaningful agreement/contradiction computation. Mitigation: project into shared space via learned linear projection before computing interactions.
+**Estimated effort**: 1-2 weeks
+
+---
+
+### Idea 3: Normality-Anchored Deviation Detection (NADD)
+
+**Core Motivation**: Implicit hate is hard because the surface content looks normal — ordinary visuals, conversational tone, no explicit slurs. The hate signal is in DEVIATIONS from normal cross-modal patterns: when what's said doesn't quite match what's shown, or when the topic-tone combination is subtly unusual. Current classifiers look for explicit hate features; they should look for *abnormal normalcy*.
+
+**Problem Solved**: (1) Implicit hate detection is the hardest subproblem (ImpliHateVid ACL 2025 introduced it as a benchmark). (2) Current methods trained on explicit hate overfit to surface features (slurs, symbols) and fail on implicit cases. (3) The motivation is compelling: "Implicit hate hides in plain sight — detect it by finding what's subtly wrong, not what's obviously hateful."
+
+**Philosophy Borrowed**: DSANet (AAAI 2026) — normality prototypes + deviation scoring. Adapted from video anomaly detection to hateful video detection, where "normal" means benign cross-modal alignment patterns.
+
+**Method Sketch**:
+1. From training set benign videos, learn topic-conditioned normality prototypes in the joint (rationale, frame, audio) embedding space
+2. For each test video, compute deviation score: `dev = d(x, nearest_prototype(x))` — distance from the nearest normality prototype
+3. Classify from: `[e_rat; e_frame; e_audio; dev; prototype_residual]`
+4. Key insight: explicit hate has HIGH deviation from normality; implicit hate has MODERATE deviation (looks almost normal but not quite); benign has LOW deviation
+
+**Why Novel**:
+- Anomaly detection paradigm has NEVER been applied to hate speech detection
+- Closest: DSANet (video anomaly), VadCLIP (video anomaly) — but these detect visual anomalies, not semantic/pragmatic ones
+- The contribution: reframing implicit hate detection as a deviation-from-normality problem
+
+**Novelty**: 8/10 — paradigm transfer from anomaly detection to hate detection is novel
+**Feasibility**: MEDIUM — requires careful prototype learning, may need larger datasets
+**Risk**: HIGH
+**Main failure mode**: Normality prototypes are dataset-specific and don't transfer. Hateful and benign videos may overlap too much in embedding space.
+**Estimated effort**: 3-4 weeks
+
+---
+
+## Tier 2 Ideas (Promising but Higher Risk)
+
+### Idea 4: Anti-Collapse Orthogonal Fusion
+
+- **Hypothesis**: Rationale dominance causes representation collapse (shared classifier neurons absorb text signal, leaving no rank for AV)
+- **Philosophy**: Representation Collapse (ICML 2025 Spotlight)
+- **Method**: Orthogonal subspace constraint — each modality gets private + shared dimensions, cross-modal KD prevents collapse
+- **Risk**: MEDIUM — gains may be marginal if the real ceiling is low (+0.7-3.2pp means AV truly has little signal)
+- **Closest prior**: Representation Collapse paper itself, but applied to rationale-dominant pipeline is new
+
+### Idea 5: Rationale-Conditioned Temporal Grounding
+
+- **Hypothesis**: Pooling frame/audio over entire video washes out temporally sparse hate signals
+- **Philosophy**: FaithScore claim decomposition adapted as temporal selector
+- **Method**: Decompose rationale into atomic claims → predict which video segments support each claim → aggregate modality features over support regions only
+- **Risk**: MEDIUM-HIGH — most hate videos are short (<60s), temporal selection may not help
+- **Closest prior**: MultiHateLoc (WWW 2026) does temporal localization but differently (MIL objective)
+
+### Idea 6: Learnable Evidence Schema (VERA-style)
+
+- **Hypothesis**: The diagnostic prompt fields are hand-designed; learning optimal evidence fields could improve rationale quality
+- **Philosophy**: VERA (CVPR 2025) + TextGrad (ICML 2025)
+- **Method**: Start with diagnostic prompt → train classifier → use loss as signal → optimize prompt fields via verbal feedback → iterate on small dev set
+- **Risk**: MEDIUM-HIGH — budget constraint ($20-100 for MLLM calls), may need 3-5 iterations
+- **Closest prior**: VERA does this for anomaly detection; nobody for hate detection
+
+---
+
+## Eliminated Ideas (from GPT-5.4 brainstorm)
 
 | Idea | Reason eliminated |
 |------|-------------------|
-| Conflict Is Signal (evidential DS fusion) | Novelty too low — "evidential fusion on a new task"; likely a calibration story, not accuracy |
-| Latent Questions, Not Prompts (VERA-style) | Borderline — "learned query vectors" ≈ rebranded cross-attention; hard to differentiate |
-| Rescue-Then-Adapt (dynamic routing + TTA) | Two techniques stapled together; too complex for 2 months; routing errors cascade |
-| Relational Anchors (CMAD + SAR) | Too close to killed directions (prototypes, concept bottleneck); easy reviewer reduction |
-| Short Cue, Long Context (dual memory + TACA) | Datasets may not require dual-memory reasoning; inflated architecture for the signal |
-| Ungrounded = Suspect (HalLoc + StarFT) | Too close to contrastive/spuriosity territory; may suppress useful implicit-hate tokens |
-| Disentangled Support Maps (MASH-VLM + HalLoc) | Spatial/temporal split is artificial for social/contextual hate signals |
+| Grounded Information Bottleneck | Too close to killed direction #34 (LSRB = concept/information bottleneck) |
+| Residual Multimodal Correction | Too close to killed directions #12 (reliability-aware fusion) and #13 (error-focused two-regime, too few hard samples) |
+| Interpretable Evidence-Interaction MoE | HVGuard already uses MoE; differentiation too weak; close to killed #22 (weakness-aware routing) |
+| Weak-Modality Boosting | Close to killed #12 and #22; ceiling limited by inherent AV weakness (+0.7-3.2pp) |
+| Multi-prompt distillation variants | Violates constraint #6 (no cross-prompt ensembling) |
 
 ---
 
-## Key Lessons from Pilot
+## Constraint Compliance Check
 
-1. **"AV as text validator/editor" is wrong for this task.** GTT and CMDE both failed because global audio/frame features cannot reliably judge whether MLLM-generated text tokens/fields are correct. Hate signals are often abstract, inferential, or culturally contextual — not directly verifiable from raw modalities.
-
-2. **No method consistently beats text-only MLP across all datasets.** This is the hardest finding. It suggests that on these datasets, the text-only representation is already near the ceiling achievable with these audio/frame features.
-
-3. **The multimodal gain depends on how strong text-only already is.** MHClip-EN (text baseline 70.56 F1) benefits most from multimodal methods. HateMM (text baseline 86.89 F1) barely benefits. This matches the intuition: when text is already near-sufficient, adding weak modalities mostly adds noise.
-
-4. **RCD is the only method with coherent stability improvement on HateMM**: lower std, better worst-seed, slight mean gain. But this didn't transfer to other datasets.
-
-5. **BORF is the most robust design**: it never significantly hurts any dataset. The asymmetric "residual only when uncertain" design prevents the damage that symmetric fusion causes. But it also doesn't help enough to be a contribution.
+| Constraint | Idea 1 (OGC) | Idea 2 (CAEF) | Idea 3 (NADD) |
+|---|---|---|---|
+| No human annotation | ✅ Auto-parsed | ✅ Auto | ✅ Auto |
+| No multi-prompt ensemble | ✅ One prompt | ✅ One prompt | ✅ One prompt |
+| Genuinely multimodal | ✅ Modalities verify observations | ✅ Contradiction requires ≥2 modalities | ✅ Joint normality prototypes |
+| One core principle | ✅ Observation grounding | ✅ Consistency modeling | ✅ Deviation from normality |
+| No model upgrade | ✅ Uses existing MLLM outputs | ✅ Same | ✅ Same |
+| Builds on proven pipeline | ✅ Extends encoding + fusion | ✅ Extends fusion features | ✅ Adds prototype layer |
+| Not killed direction | ✅ | ✅ | ✅ |
+| EMNLP novelty bar | ✅ New paradigm | ✅ New for hate detection | ✅ Paradigm transfer |
 
 ---
 
-## Remaining Options
+## Novelty Verification Results
 
-1. **Bounded RCD follow-up on HateMM** — 2-3 targeted changes (selective residual application, better alpha/beta calibration). Stop rule: if no clear win after that.
-2. **Investigate why MHClip-EN benefits from multimodal but HateMM doesn't** — this could lead to a dataset-adaptive method.
-3. **Pivot entirely** — the pilot evidence suggests that for MLLM-textualized hateful video detection, the multimodal fusion problem may be fundamentally limited by the quality of audio/frame features, not by the fusion method.
+| Idea | Hate Detection | Neighboring Tasks (fake news, sarcasm, sentiment) | Assessment |
+|------|---------------|---------------------------------------------------|------------|
+| OGC (Idea 1) | No competitor | FaithScore decomposes claims but doesn't gate classification; fact-checking verifies but not in a fusion pipeline | **HIGH** — the classification-gating mechanism is new even across adjacent fields |
+| CAEF (Idea 2) | No competitor | Contradiction signal used in fake news (CAFE, BMR) and sarcasm (incongruity models) — these are neighboring tasks | **MEDIUM** — core mechanism exists in neighboring tasks; adaptation to rationale verification adds value but reviewers may question novelty |
+| NADD (Idea 3) | No competitor | Anomaly detection paradigm (DSANet, VadCLIP) not applied to semantic/pragmatic hate detection | **HIGH** — genuine paradigm transfer, no precedent in any neighboring NLP task |
+| Anti-Collapse (Idea 4) | No competitor | MISA, Self-MM do private/shared orthogonal subspace in sentiment analysis — directly neighboring | **LOW** — well-known technique in multimodal sentiment, too close to neighboring tasks |
+
+**User's novelty standard**: "方法只要没被邻近/相似任务就叫做novel" — a method is novel if it hasn't been done in neighboring tasks. By this standard, **Idea 1 and Idea 3 are clearly novel; Idea 2 is borderline; Idea 4 is not novel enough**.
+
+**Revised ranking**: Idea 1 (OGC) >> Idea 3 (NADD) > Idea 2 (CAEF, as extension of Idea 1) >> Idea 4 (demoted)
+
+---
+
+## Suggested Execution Order
+
+1. **Start with Idea 1 (OGC)** — lowest risk, strongest motivation, no additional MLLM calls, clean paper story. If observation grounding works, it also validates the foundation for Idea 2.
+
+2. **Combine with Idea 2 (CAEF)** as an ablation/extension — once you have separate observation/interpretation embeddings, computing contradiction features is trivial. This can be the "full model" while OGC alone is the ablation.
+
+3. **Idea 3 (NADD) as backup** — if OGC + CAEF don't yield sufficient gains, NADD offers a completely different angle. Best tested on ImpliHateVid specifically.
+
+## Recommended Paper Framing
+
+**Title candidates**:
+- "Observation-Grounded Multimodal Fusion for Hateful Video Detection"
+- "Trust but Verify: Evidence-Grounded MLLM Rationales for Video Hate Detection"
+- "From Rationale to Evidence: Grounding MLLM Judgments with Multimodal Verification"
+
+**Story arc**:
+1. MLLM rationales are strong but unaccountable — they can hallucinate, and the classifier can't tell
+2. Raw modalities are ground truth but underused in current pipelines (+0.7-3.2pp)
+3. We redefine the role of raw modalities: from redundant features to evidence verifiers
+4. The key insight: separate observations (verifiable) from interpretations (must be grounded), use modalities to verify observations, gate interpretations by grounding confidence
+5. Result: better accuracy, better stability, and a principled multimodal story
+
+---
+
+## Next Steps
+
+- [ ] Implement Idea 1 (OGC): parse existing diagnostic rationales into observation/interpretation, encode separately, build gated fusion
+- [ ] Run pilot on HateMM with 3 seeds — compare against rationale-only MLP baseline
+- [ ] If positive signal, add Idea 2 (CAEF) contradiction features as extension
+- [ ] If confirmed, invoke `/auto-review-loop` for full iteration

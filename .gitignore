@@ -6,6 +6,7 @@ __pycache__/
 
 # Nested repository metadata
 **/.git/
+archive/
 archive/moe_refs/
 
 # Local build artifacts
@@ -23,3 +24,18 @@ build/
 
 # Large experiment outputs
 archive/**/results/
+
+# Slurm logs
+log/
+
+# Generated data (large, regenerate on target machine)
+rationales/
+embeddings/
+results/
+datasets/
+
+# Slurm scripts (machine-specific)
+scripts/*.sbatch
+
+# State files (machine-specific)
+TARGET_LOOP_STATE.json
