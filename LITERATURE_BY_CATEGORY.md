@@ -1,7 +1,7 @@
 # Literature Organized by Two Categories
 
-**Date**: 2026-04-06
-**Source**: Refreshed from prior 44-paper collection + new search (2025-2026 top venues)
+**Date**: 2026-04-08
+**Source**: Refreshed from prior 44-paper collection + new search (2025-2026 top venues); Category E added for two-stage MLLM→Parametric Classifier papers
 
 ---
 
@@ -446,8 +446,407 @@ Papers about HOW to fuse information from multiple modalities. Covers: modality 
 
 ---
 
-**Total papers**: 72
+## Category C: Interleaved Reasoning for Multimodal Understanding
+
+Papers about interleaving visual and textual reasoning steps — generating visual rationales (image regions, latent embeddings, or frame retrievals) within CoT, rather than text-only CoT. Covers: interleaved-modal CoT, latent visual reasoning, video-specific interleaved reasoning, chain-of-shot, grounded CoT verification.
+
+---
+
+### C.1 Interleaved-Modal Chain-of-Thought
+
+**IR1.** "Interleaved-Modal Chain-of-Thought" — **CVPR 2025**
+- Attention-driven Selection (ADS) inserts image regions into CoT steps as visual rationales; plug-and-play, no extra parameters; up to 14% over text-only CoT
+- paper: https://arxiv.org/abs/2411.19488 | code: https://github.com/jungao1106/ICoT
+- Foundational formulation of interleaved-modal CoT for VLMs
+
+**IR2.** "MINT-CoT: Enabling Interleaved Visual Tokens in Mathematical Chain-of-Thought Reasoning" — **NeurIPS 2025**
+- Interleave Token dynamically selects arbitrary-shape visual regions per reasoning step; 3-stage training (text CoT SFT → interleaved CoT SFT → interleaved CoT RL)
+- paper: https://arxiv.org/abs/2506.05331 | code: https://github.com/xinyan-cxy/MINT-CoT
+- Math-focused but interleave mechanism is general; +34% MathVista, +29% GeoQA
+
+**IR3.** "VisuoThink: Empowering LVLM Reasoning with Multimodal Tree Search" — **ACL 2025**
+- Vision-text interleaved expansion + rollout simulation + self-voting selection; test-time scaling via look-ahead tree search
+- paper: https://aclanthology.org/2025.acl-long.1053/ | code: https://github.com/ekonwang/VisuoThink
+- Inference-time scaling without fine-tuning; SOTA on geometry and spatial reasoning
+
+### C.2 Latent Visual Reasoning (Continuous Embeddings as Interleaved Thoughts)
+
+**IR4.** "Monet: Reasoning in Latent Visual Space Beyond Images and Language" — **CVPR 2026**
+- Generates continuous latent visual embeddings as intermediate "visual thoughts" interleaved with text; VLPO (Visual-latent Policy Optimization) for RL
+- paper: https://arxiv.org/abs/2511.21395 | code: https://github.com/NOVAglow646/Monet
+- Latent-space interleaving avoids expensive image generation; strong OOD generalization
+
+**IR5.** "Interleaved Latent Visual Reasoning with Selective Perceptual Modeling (ILVR)" — **arXiv 2025.12**
+- Momentum teacher selectively distills features from ground-truth intermediate images; alternates text generation with latent visual cues
+- paper: https://arxiv.org/abs/2512.05665 | code: https://github.com/XD111ds/ILVR
+- Bridges fine-grained perception and sequential reasoning; outperforms single-step approaches
+
+**IR6.** "Imagine While Reasoning in Space: Multimodal Visualization-of-Thought (MVoT)" — **ICML 2025**
+- Generates image visualizations of reasoning traces; token discrepancy loss for high-quality visualization
+- paper: https://arxiv.org/abs/2501.07542 | code: https://github.com/chengzu-li/MVoT
+- Visual thinking complements verbal reasoning in spatial tasks where text-only CoT fails
+
+### C.3 Video-Specific Interleaved Reasoning
+
+**IR7.** "ViTCoT: Video-Text Interleaved Chain-of-Thought for Boosting Video Understanding in LLMs" — **ACM MM 2025**
+- Interleaves video frames and text in CoT; activates more neuron values in MLLMs than text-only CoT
+- paper: https://dl.acm.org/doi/10.1145/3746027.3755837
+- Direct video-text interleaving paradigm; cognitively aligned reasoning
+
+**IR8.** "FrameMind: Frame-Interleaved Video Reasoning via Reinforcement Learning" — **arXiv 2025.09** (under review)
+- Frame-Interleaved CoT (FiCOT): model alternates between textual reasoning and active frame retrieval via tools; trained with DRFS-GRPO
+- paper: https://arxiv.org/abs/2509.24008 | code: https://framemind.github.io/
+- Dynamic visual evidence gathering during inference; competitive with proprietary models on MVBench, MLVU, VideoMME
+
+**IR9.** "VITAL: Thinking With Videos via Multimodal Tool-Augmented RL for Long Video Reasoning" — **arXiv 2025.08**
+- Agentic framework: densely samples frames on demand + multimodal CoT; DGRPO for difficulty-aware RL
+- paper: https://arxiv.org/abs/2508.04416
+- Strong on long video; 11 benchmarks
+
+**IR10.** "VideoEspresso: A Large-Scale Chain-of-Thought Dataset for Fine-Grained Video Reasoning via Core Frame Selection" — **CVPR 2025 Oral**
+- Semantic-aware frame selection + GPT-4o QA generation; Hybrid LVLM collaboration (Frame Selector + reasoning LVLM)
+- paper: https://openaccess.thecvf.com/content/CVPR2025/html/Han_VideoEspresso_A_Large-Scale_Chain-of-Thought_Dataset_for_Fine-Grained_Video_Reasoning_via_CVPR_2025_paper.html | code: https://github.com/hshjerry/VideoEspresso
+- CVPR oral; 14-task benchmark with 9 LVLMs evaluated
+
+### C.4 Chain-of-Shot / Efficient Video Reasoning
+
+**IR11.** "CoS: Chain-of-Shot Prompting for Long Video Understanding" — **arXiv 2025.02**
+- Frames shot selection as test-time visual prompt optimization; shots-task alignment for long videos
+- paper: https://arxiv.org/abs/2502.06428
+- Addresses context-length bottleneck for long videos
+
+**IR12.** "Rethinking Chain-of-Thought Reasoning for Videos" — **arXiv 2025.12**
+- Challenges lengthy CoT + massive visual tokens; shows concise reasoning + reduced tokens can suffice
+- paper: https://arxiv.org/abs/2512.09616
+- Important counterpoint: efficiency vs. exhaustive interleaving
+
+### C.5 Grounded CoT and Verification
+
+**IR13.** "ARGUS: Vision-Centric Reasoning with Grounded Chain-of-Thought" — **CVPR 2025**
+- Goal-directed visual tokenization: grounds RoI conditioned on instructions, re-engages visual tokens as CoT context
+- paper: https://arxiv.org/abs/2505.23766 | code: https://yunzeman.github.io/argus/
+- From NVIDIA; beats SOTA open models at 8B scale
+
+**IR14.** "MM-Verify: Enhancing Multimodal Reasoning with Chain-of-Thought Verification" — **ACL 2025**
+- Simulation-based tree search + rejection sampling for high-quality CoT verification data; MM-Verifier + MM-Reasoner
+- paper: https://aclanthology.org/2025.acl-long.689/ | code: https://github.com/aurora-slz/mm-verify
+- Verification as complement to generation; surpasses GPT-4o on MathVista
+
+### C.6 Multi-Image Interleaved Reasoning
+
+**IR15.** "LVLM-MIR: Large Vision-Language Model with Parameter-Efficient Fine-Tuning for Multimodal Interleaved Reasoning" — **ACM MM 2025**
+- LoRA-based PEFT on Qwen2.5-VL for multi-image interleaved reasoning; freezes pretrained weights
+- paper: https://dl.acm.org/doi/10.1145/3746027.3762002
+- Lightweight adaptation for interleaved multi-image scenarios
+
+### C.7 Surveys
+
+**IRS1.** "Multimodal Chain-of-Thought Reasoning: A Comprehensive Survey" — **arXiv 2025.03**
+- Covers image, video, speech, audio, 3D modalities; methodologies, applications, benchmarks
+- paper: https://arxiv.org/abs/2503.12605
+
+**IRS2.** "Thinking with Images for Multimodal Reasoning: Foundations, Methods, and Future Frontiers" — **arXiv 2025.06**
+- Focuses on visual thinking / image generation as reasoning; covers MVoT, Monet, ILVR families
+- paper: https://arxiv.org/abs/2506.23918
+
+---
+
+## Cross-Reference: Papers in Both Categories
+
+| Paper | Category A (Video Understanding) | Category B (Fusion Method) | Category C (Interleaved Reasoning) |
+|---|---|---|---|
+| VERA (CVPR 2025) | Video anomaly detection pipeline | Prompt optimization (learnable questions) | — |
+| ImpliHateVid (ACL 2025) | Implicit hate in video | Two-stage contrastive fusion | — |
+| MM-HSD (ACM MM 2025) | Video hate detection SOTA | Cross-modal attention fusion | — |
+| MemeCLIP (EMNLP 2024) | Hateful meme detection | Frozen encoder + adapter fusion | — |
+| Representation Collapse (ICML 2025) | Explains AV suppression | Cross-modal KD / basis reallocation | — |
+| MoRE (WWW 2025) | Video hate detection | Mixture of retrieval-augmented experts | — |
+| I2MoE (ICML 2025) | General multimodal | Interpretable MoE fusion | — |
+| ARGUS (CVPR 2025) | — | — | Grounded CoT |
+| MM-Verify (ACL 2025) | — | — | CoT verification |
+| VideoEspresso (CVPR 2025) | Video reasoning dataset | — | Core frame selection + CoT |
+
+---
+
+## Category D: Simple-to-Hard / Adaptive Inference for Multimodal
+
+Papers about routing easy vs hard cases, cascade systems, easy-to-hard generalization, difficulty-aware training/inference — especially those using MLLMs. The core idea: handle easy cases cheaply, spend more compute/reasoning on hard cases.
+
+---
+
+### D.1 Easy-to-Hard Generalization (Foundation)
+
+**SH1.** "Easy-to-Hard Generalization: Scalable Alignment Beyond Human Supervision" — **NeurIPS 2024**
+- Train process-supervised reward model on easy problems (level 1-3 MATH) → use it to score hard problems (level 4-5); re-ranking or RL for easy-to-hard transfer
+- paper: https://arxiv.org/abs/2403.09472 | code: https://github.com/Edward-Sun/easy-to-hard
+- Core paradigm: evaluator trained on easy data generalizes to score hard data
+
+**SH2.** "Generative Verifiers: Reward Modeling as Next-Token Prediction" — **ICLR 2025**
+- GenRM trains verifiers via next-token prediction + CoT; shows 28%→44.6% on easy-to-hard MATH generalization
+- paper: https://openreview.net/forum?id=Ccwp4tFEtE
+- Verifier-based easy-to-hard transfer; GenRM-CoT trained on grade-school math solves 17% more competition problems
+
+**SH3.** "Weak-to-Strong Generalization: Eliciting Strong Capabilities With Weak Supervision" — **ICML 2024 Oral**
+- Strong model finetuned on weak model labels outperforms weak supervisor; auxiliary confidence loss recovers near-strong performance
+- paper: https://arxiv.org/abs/2312.09390 | code: https://github.com/openai/weak-to-strong
+- OpenAI. Paradigmatic: weak supervisor + strong model = better than weak alone
+
+### D.2 Cascade / Routing with Classification Experiments (Top Venues)
+
+**SH4.** "Gatekeeper: Improving Model Cascades Through Confidence Tuning" — **ICML 2025**
+- Novel loss function fine-tunes small model: high confidence when correct, low when wrong → better deferral to large model
+- **Classification exps**: encoder-only image classification, decoder-only LLM text tasks, encoder-decoder VLM classification + captioning
+- paper: https://arxiv.org/abs/2502.19335
+- Task/architecture agnostic. Tested on VLM. Most directly applicable to our setting.
+
+**SH5.** "Inter-Cascade: From Deferral to Learning — Online In-Context Knowledge Distillation for LLM Cascades" — **ICLR 2025**
+- Strong model not just helper but teacher: when it solves a hard query, distills strategy into reusable repository → weak model improves over time
+- **Classification exps**: text classification on multiple NLP benchmarks; weak model accuracy +33%, strong model calls -48%
+- paper: https://arxiv.org/abs/2509.22984 | openreview: https://openreview.net/forum?id=fIFYBtjn2h
+- Key: small model gets progressively better at hard cases. Most novel mechanism among cascade papers.
+
+**SH6.** "A Unified Approach to Routing and Cascading for LLMs" — **ICML 2025**
+- Derives theoretically optimal strategy unifying routing + cascading; proposes "cascade routing" with formal proofs
+- **Classification exps**: text classification + generation benchmarks
+- paper: https://arxiv.org/abs/2410.10347 | project: https://www.sri.inf.ethz.ch/publications/dekoninck2024cascaderouting
+- Theoretical foundation for principled easy→hard deferral
+
+**SH7.** "Cascaded Language Models for Cost-Effective Human-AI Decision-Making" — **NeurIPS 2025**
+- 3-tier cascade: base model → large model → human expert; deferral policy + abstention policy based on confidence
+- **Classification exps**: text classification + QA; code: https://github.com/fanconic/cascaded-llms
+- paper: https://arxiv.org/abs/2506.11887
+- Includes human-in-the-loop tier; directly relevant to content moderation
+
+**SH8.** "Large Language Model Cascades with Mixture of Thought Representations" — **ICLR 2025**
+- Multi-stage LLM cascade: small model handles easy, forwards uncertain (log-prob confidence) to larger model
+- **Classification exps**: reasoning + classification benchmarks
+- paper: https://openreview.net/forum?id=6okaSfANzh
+- MoT (Mixture of Thought) representations for routing decisions
+
+**SH9.** "Online Cascade Learning for Efficient Inference over Streams" — **ICML 2024**
+- Online learning of cascade: logistic regressor → SLM → LLM; deferral policy as imitation-learning
+- **Classification exps**: stream classification tasks
+- paper: https://dl.acm.org/doi/10.5555/3692070.3693614
+- Online setting; model learns to defer during deployment
+
+### D.3 Applied Cascade (Video / Content Moderation / Multimodal)
+
+**SH10.** "Filter-And-Refine: A MLLM Based Cascade System for Industrial-Scale Video Content Moderation" — **ACL 2025 Industry**
+- Lightweight router → easy cases fast, hard cases → full MLLM ranker; transforms generative MLLM into classifier
+- **Classification exps**: video content moderation; +66.5% F1 over traditional classifiers; compute reduced to 1.5%
+- paper: https://aclanthology.org/2025.acl-industry.62/
+- Only cascade paper in video content moderation domain
+
+**SH11.** "MMR-Bench: A Comprehensive Benchmark for Multimodal LLM Routing" — **arXiv 2026.01**
+- Benchmark for query-level MLLM routing; confidence via prototype similarity + norm-based signal per modality
+- paper: https://arxiv.org/abs/2601.17814 | code: https://github.com/Hunter-Wrynn/MMR-Bench
+- First benchmark isolating multimodal routing; easy OCR → cheap model, hard reasoning → expensive model
+
+**SH12.** "VModA: An Effective Framework for Adaptive NSFW Image Moderation" — **arXiv 2025**
+- Adaptive moderation: easy cases → lightweight filter, ambiguous cases → full MLLM analysis
+- paper: https://arxiv.org/abs/2505.23386
+- Content moderation domain (NSFW); architecture pattern transfers to hate
+
+### D.4 Adaptive Inference / Test-Time Scaling
+
+**SH13.** "AdaLLaVA: Learning to Inference Adaptively for Multimodal Large Language Models" — **ICCV 2025**
+- Dynamically reconfigures MLLM operations during inference based on input difficulty + latency budget
+- paper: https://openaccess.thecvf.com/content/ICCV2025/papers/Xu_Learning_to_Inference_Adaptively_for_Multimodal_Large_Language_Models_ICCV_2025_paper.pdf
+- Learned adaptive system; integrates with token selection
+
+**SH14.** "D-LLM: A Token Adaptive Computing Resource Allocation Strategy" — **NeurIPS 2024**
+- Dynamic decision module per transformer layer: skip or execute based on token importance
+- paper: https://neurips.cc/virtual/2024/poster/94977
+- Token-level adaptive compute within a single input
+
+**SH15.** "Limits and Gains of Test-Time Scaling in Vision-Language Reasoning" — **arXiv 2025.12**
+- Systematic study of test-time scaling for VLMs; external verification most reliable; iterative refinement often degrades
+- paper: https://arxiv.org/abs/2512.11109
+- More compute at test-time helps on multi-step reasoning but not perception tasks
+
+### D.5 Difficulty-Aware Data Selection
+
+**SH16.** "Revisiting the Data Sampling in Multimodal Post-training from a Difficulty-Distinguish View" — **arXiv 2025.11**
+- PISM (Progressive Image Semantic Masking) quantifies sample hardness; CMAB (Cross-Modality Attention Balance) measures cross-modal interaction complexity
+- paper: https://arxiv.org/abs/2511.06722
+- Two principled difficulty metrics for MLLM data
+
+---
+
+## Cross-Reference: Papers in Both Categories
+
+| Paper | Category A (Video Understanding) | Category B (Fusion Method) | Category C (Interleaved Reasoning) | Category D (Simple-to-Hard) |
+|---|---|---|---|---|
+| VERA (CVPR 2025) | Video anomaly detection pipeline | Prompt optimization (learnable questions) | — | — |
+| ImpliHateVid (ACL 2025) | Implicit hate in video | Two-stage contrastive fusion | — | — |
+| MM-HSD (ACM MM 2025) | Video hate detection SOTA | Cross-modal attention fusion | — | — |
+| MemeCLIP (EMNLP 2024) | Hateful meme detection | Frozen encoder + adapter fusion | — | — |
+| Representation Collapse (ICML 2025) | Explains AV suppression | Cross-modal KD / basis reallocation | — | — |
+| MoRE (WWW 2025) | Video hate detection | Mixture of retrieval-augmented experts | — | — |
+| I2MoE (ICML 2025) | General multimodal | Interpretable MoE fusion | — | — |
+| ARGUS (CVPR 2025) | — | — | Grounded CoT | — |
+| MM-Verify (ACL 2025) | — | — | CoT verification | — |
+| VideoEspresso (CVPR 2025) | Video reasoning dataset | — | Core frame selection + CoT | — |
+| Filter-And-Refine (ACL 2025) | Video content moderation | — | — | MLLM cascade routing |
+
+---
+
+## Category E: Two-Stage MLLM Analysis → Parametric Classifier Training
+
+Papers that use a two-stage pipeline: Stage 1 uses an MLLM/VLM to analyze multimodal content (generate descriptions, rationales, concepts, or features); Stage 2 trains a SEPARATE parametric classifier/detector on the MLLM outputs — not just prompting or fine-tuning the MLLM itself. Covers: LLM-rationale-augmented classifiers, concept bottleneck models with LLM concepts, VLM-to-lightweight distillation, MLLM-generated feature engineering.
+
+---
+
+### E.1 LLM/MLLM Rationale → Trained Classifier (Content Moderation / Misinformation)
+
+**E1.** "EARAM: From Predictions to Analyses: Rationale-Augmented Fake News Detection with Large Vision-Language Models" — **WWW 2025**
+- Stage 1: LVLMs generate multi-angle analytical rationales; Stage 2: a smaller LM adaptively extracts useful rationales and trains a classifier (outperforms LVLM's own judgment)
+- paper: https://dl.acm.org/doi/10.1145/3696410.3714532
+- Directly validates that dedicated classifier > MLLM prompting for detection tasks
+
+**E2.** "Bad Actor, Good Advisor: Exploring the Role of LLMs in Fake News Detection (ARG)" — **AAAI 2024**
+- Stage 1: GPT-3.5 generates multi-perspective rationales; Stage 2: Adaptive Rationale Guidance network trains BERT to selectively acquire LLM insights via news-rationale interaction; also derives rationale-free student (ARG-D)
+- paper: https://ojs.aaai.org/index.php/AAAI/article/view/30214
+
+**E3.** "ExplainHM: Explainable Harmful Meme Detection through Multimodal Debate between LLMs" — **WWW 2024**
+- Stage 1: two LLM agents debate from harmless/harmful perspectives generating rationales; Stage 2: fine-tuned T5-based model as debate judge fuses rationale features with meme features for classification
+- paper: https://dl.acm.org/doi/10.1145/3589334.3645381
+
+**E4.** "Mr.Harm: Unveiling Harmful Memes with Multimodal Reasoning Distilled from LLMs" — **EMNLP 2023 Findings**
+- Stage 1: LLMs perform abductive reasoning to generate multimodal rationales; Stage 2: generative framework distills LLM reasoning chains to train a lightweight harmful meme classifier
+- paper: https://aclanthology.org/2023.findings-emnlp.611/
+
+**E5.** "SHIELD: Interpretable Hate Speech Detection using LLM-extracted Rationales" — **NAACL WOAH 2024**
+- Stage 1: ChatGPT extracts rationale words/phrases linked to hate labels; Stage 2: BERT-based detector trained with rationale augmentation for improved detection + interpretability
+- paper: https://aclanthology.org/2024.woah-1.17/
+
+**E6.** "Multi-perspective Rationale Generation and Verification for Multimodal Fake News Detection" — **AAAI 2026**
+- Stage 1: LLM generates multi-perspective rationales; Stage 2: cross-verification screens contradictions, a separate detection classifier makes real/fake judgment with adaptive weighting fusion
+- paper: https://ojs.aaai.org/index.php/AAAI/article/view/36965
+
+**E7.** "Generate First, Then Sample: Enhancing Fake News Detection with LLM-Augmented Reinforced Sampling" — **ACL 2025**
+- Stage 1: LLM generates synthetic fake news in 3 styles; Stage 2: RL-based optimal sampling trains a separate fake news detector (+24% improvement)
+- paper: https://aclanthology.org/2025.acl-long.1182/
+
+**E8.** "LLM-MRD: LLM-Guided Multi-View Reasoning Distillation for Fake News Detection" — **arXiv 2026.03** (under review)
+- Stage 1: teacher LLM generates multi-view (textual, visual, cross-modal) reasoning chains; Stage 2: Calibration Distillation trains an efficient student detector (+5.19% ACC, +6.33% F1)
+- paper: https://arxiv.org/abs/2603.19293
+
+**E9.** "FakeSV-VLM: Taming VLM for Detecting Fake Short-Video News via Progressive MoE Adapter" — **EMNLP 2025 Findings**
+- Stage 1: VLM processes short video multimodal content; Stage 2: Progressive MoE Adapter with 4 scenario-specific experts trained on top of frozen VLM for fake **video** news classification
+- paper: https://aclanthology.org/2025.findings-emnlp.257/
+- Video task; MoE architecture directly relevant to our SCM-MoE
+
+**E10.** "SafeWatch: Efficient Safety-Policy Following Video Guardrail Model" — **ICLR 2025**
+- Stage 1: multiple MLLMs generate consensus multi-label safety annotations + explanations for video frames; Stage 2: smaller MLLM trained via 3-stage distillation (guardrail perf, token pruning, explanation quality); +28.2% over baselines
+- paper: https://openreview.net/forum?id=xjKz6IxgCX
+- Video safety; multi-MLLM teacher → smaller student paradigm
+
+### E.1 Earlier Efforts
+
+**E11.** "Improving Hateful Meme Detection Exploiting LMM-Generated Knowledge" — **CVPR 2025 Workshop**
+- Stage 1: frozen LMM generates descriptions + emotions per meme; Stage 2: CLIP encodes these, concatenated with image/text embeddings, trains a classification head
+- paper: https://arxiv.org/abs/2504.09914
+
+**E12.** "IntMeme: Leveraging Large Multimodal Models for Hateful Meme Detection" — **ICWSM 2025**
+- Stage 1: frozen InstructBLIP/mPLUG-Owl generate meme interpretations; Stage 2: RoBERTa/FLAVA encode interpretations, combined features train a hateful meme classifier
+- paper: https://ojs.aaai.org/index.php/ICWSM/article/view/35845
+
+**E13.** "OSPC: Artificial VLM Features for Hateful Meme Detection" — **WWW 2024 Companion**
+- Stage 1: large VLM (LLaVA-NeXT) generates probabilistic feature encodings from meme text; Stage 2: lightweight classifier trained on VLM-derived features
+- paper: https://dl.acm.org/doi/10.1145/3589335.3665996
+
+### E.2 LLM-Generated Concepts → Concept Bottleneck Classifier
+
+**E14.** "VLG-CBM: Training Concept Bottleneck Models with Vision-Language Guidance" — **NeurIPS 2024**
+- Stage 1: LLM generates concept candidates, Grounding-DINO provides visually grounded annotations; Stage 2: concept bottleneck classifier (CBL + linear head) trained on concept scores
+- paper: https://arxiv.org/abs/2408.01432
+
+**E15.** "CB-LLM: Concept Bottleneck Large Language Models" — **ICLR 2025**
+- Stage 1: ChatGPT generates concept set, sentence embedding models label samples; Stage 2: backbone LLM + concept bottleneck layer + linear classifier trained for text classification
+- paper: https://arxiv.org/abs/2412.07992
+
+**E16.** "BC-LLM: Bayesian Concept Bottleneck Models with LLM Priors" — **NeurIPS 2025**
+- Stage 1: LLMs serve as both concept extraction and Bayesian prior; Stage 2: iteratively discovers concepts and trains sparse prediction model
+- paper: https://arxiv.org/abs/2410.15555
+
+**E17.** "CoCoBM: Enhancing Interpretable Image Classification Through LLM Agents and Conditional Concept Bottleneck Models" — **ACL 2025**
+- Stage 1: LLM agents dynamically construct/adjust concept bank via environmental feedback; Stage 2: trains Conditional Concept Bottleneck Model with editable concept-score matrix
+- paper: https://aclanthology.org/2025.acl-long.600/
+
+**E18.** "PCGR: Probabilistic Concept Graph Reasoning for Multimodal Misinformation Detection" — **arXiv 2026.03**
+- Stage 1: GPT-5 analyzes high-loss samples to auto-discover reasoning concepts; Stage 2: layered probabilistic concept graph with hierarchical attention aggregates concept probabilities for veracity classification
+- paper: https://arxiv.org/abs/2603.25203
+- Concept auto-growth via error-driven MLLM analysis; alternating training
+
+### E.3 VLM Knowledge Distillation → Lightweight Classifier
+
+**E19.** "VL2Lite: Task-Specific Knowledge Distillation from Large VLMs to Lightweight Networks" — **CVPR 2025**
+- Stage 1: frozen VLM (CLIP) provides visual + linguistic embeddings; Stage 2: lightweight network (MobileNet/EfficientNet) trained with visual + linguistic KD losses to match VLM representations; +7% classification accuracy
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Jang_VL2Lite_Task-Specific_Knowledge_Distillation_from_Large_Vision-Language_Models_to_Lightweight_CVPR_2025_paper.pdf
+
+**E20.** "LLM2CLIP: Powerful Language Model Unlocks Richer Visual Representation" — **AAAI 2026 Outstanding Paper**
+- Stage 1: fine-tunes LLM as embedding model via contrastive learning in caption space; Stage 2: fine-tuned LLM acts as teacher to train/improve CLIP's visual encoder through lightweight adaptor
+- paper: https://arxiv.org/abs/2411.04997
+
+**E21.** "FTP: Enhancing Video Transformers for Action Understanding with VLM-aided Training" — **ICLR 2025**
+- Stage 1: VLM generates multi-aspect text descriptions (action, components, context) via contrastive learning; Stage 2: video transformer classifier trained using projection layer + classifier head only; VLM not needed at inference
+- paper: https://openreview.net/forum?id=yspBoIZJ9Z
+- Video task; VLM descriptions used for training only
+
+### E.3 Earlier Efforts
+
+**E22.** "Feature-Level Knowledge Distillation from LMM for Enhanced Image Classification" — **NeurIPS 2025 Workshop**
+- Stage 1: LLaVA generates diverse textual descriptions per image → CLIP text embeddings; Stage 2: ResNet-50 trained to align image embeddings with LMM-derived text embeddings via cosine dissimilarity loss
+- paper: https://openreview.net/forum?id=4GtMgRteAZ
+
+### E.4 LLM-Generated Features/Labels → Downstream Model
+
+**E23.** "GLPN-LLM: Synergizing LLMs with Global Label Propagation for Multimodal Fake News" — **ACL 2025**
+- Stage 1: LLM generates pseudo-labels; Stage 2: Global Label Propagation Network propagates labels across sample graph with mask-based anti-leakage; GNN-style classifier outperforms LLM's own predictions
+- paper: https://aclanthology.org/2025.acl-long.72/
+
+**E24.** "TAPE: LLM-to-LM Interpreter for Enhanced Text-Attributed Graph Representation Learning" — **ICLR 2024**
+- Stage 1: GPT-3.5 generates zero-shot classification + textual explanations; Stage 2: DeBERTa fine-tuned as interpreter to translate explanations into node feature vectors; features train downstream GNN; SOTA on Cora/PubMed/ogbn-arxiv
+- paper: https://openreview.net/forum?id=RXFVcynVe1
+
+**E25.** "Delving into Qualitative Implications of Synthetic Data for Hate Speech Detection" — **EMNLP 2024**
+- Stage 1: LLMs (Llama, Mistral, Mixtral) generate synthetic hate speech via paraphrasing; Stage 2: downstream classifiers trained on real + LLM-generated synthetic data for improved OOD robustness
+- paper: https://aclanthology.org/2024.emnlp-main.1099/
+
+**E26.** "FeRG-LLM: Feature Engineering by Reason Generation Large Language Models" — **NAACL 2025 Findings**
+- Stage 1: fine-tuned Llama 3.1 8B generates new features via two-stage conversational dialogues + DPO; Stage 2: generated features fed into separate classifiers (XGBoost, etc.) for classification
+- paper: https://aclanthology.org/2025.findings-naacl.237/
+
+---
+
+## Cross-Reference: Papers in Both Categories
+
+| Paper | Category A (Video Understanding) | Category B (Fusion Method) | Category C (Interleaved Reasoning) | Category D (Simple-to-Hard) | Category E (MLLM→Classifier) |
+|---|---|---|---|---|---|
+| VERA (CVPR 2025) | Video anomaly detection pipeline | Prompt optimization (learnable questions) | — | — | — |
+| ImpliHateVid (ACL 2025) | Implicit hate in video | Two-stage contrastive fusion | — | — | — |
+| MM-HSD (ACM MM 2025) | Video hate detection SOTA | Cross-modal attention fusion | — | — | — |
+| MemeCLIP (EMNLP 2024) | Hateful meme detection | Frozen encoder + adapter fusion | — | — | — |
+| Representation Collapse (ICML 2025) | Explains AV suppression | Cross-modal KD / basis reallocation | — | — | — |
+| MoRE (WWW 2025) | Video hate detection | Mixture of retrieval-augmented experts | — | — | — |
+| I2MoE (ICML 2025) | General multimodal | Interpretable MoE fusion | — | — | — |
+| ARGUS (CVPR 2025) | — | — | Grounded CoT | — | — |
+| MM-Verify (ACL 2025) | — | — | CoT verification | — | — |
+| VideoEspresso (CVPR 2025) | Video reasoning dataset | — | Core frame selection + CoT | — | — |
+| Filter-And-Refine (ACL 2025) | Video content moderation | — | — | MLLM cascade routing | — |
+| GLPN-LLM (ACL 2025) | Fake news detection | — | — | — | LLM pseudo-labels → GNN |
+| PCGR (arXiv 2026) | Misinformation detection | — | — | — | LLM concept growth → concept graph classifier |
+| FakeSV-VLM (EMNLP 2025) | Fake video news | MoE adapter fusion | — | — | VLM → MoE adapter classifier |
+| SafeWatch (ICLR 2025) | Video safety | — | — | — | Multi-MLLM → distilled student |
+| Multi-perspective Rationale (AAAI 2026) | Fake news detection | — | — | — | LLM rationale → verification classifier |
+
+---
+
+**Total papers**: 129
 **Category A (Video Understanding)**: 47 papers across 8 sub-categories
 **Category B (Multimodal Fusion)**: 32 papers across 5 sub-categories
-**Cross-listed**: 7 papers appear in both categories
-**New papers added (this update)**: 28
+**Category C (Interleaved Reasoning)**: 15 papers + 2 surveys across 7 sub-categories
+**Category D (Simple-to-Hard / Cascade)**: 16 papers across 5 sub-categories
+**Category E (MLLM→Classifier)**: 26 papers across 4 sub-categories
+**Cross-listed**: 16 papers appear in multiple categories
