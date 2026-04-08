@@ -1,0 +1,15 @@
+{
+  "iteration": 0,
+  "status": "in_progress",
+  "target_spec": "HateMM acc >= 90.0, MultiHateClip acc >= 85.0 (binary)",
+  "current_approach": null,
+  "best_metric": null,
+  "best_metric_source": null,
+  "best_iteration": null,
+  "review_thread_id": null,
+  "decision": null,
+  "timestamp": "2026-04-09T00:00:00",
+  "execution_mode": "slurm",
+  "max_concurrent_gpus": 1,
+  "user": "jehc223"
+}
