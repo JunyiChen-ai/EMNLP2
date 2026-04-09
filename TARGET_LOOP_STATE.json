@@ -1,15 +1,26 @@
 {
-  "iteration": 0,
+  "iteration": 3,
   "status": "in_progress",
   "target_spec": "HateMM acc >= 90.0, MultiHateClip acc >= 85.0 (binary)",
-  "current_approach": null,
-  "best_metric": null,
-  "best_metric_source": null,
-  "best_iteration": null,
+  "current_approach": "DeBERTa-v3-base + cross-dataset pretraining + MoE multimodal + stacking ensemble",
+  "best_metric": {
+    "HateMM": 88.8,
+    "MultiHateClip_CN": 85.2,
+    "MultiHateClip_EN": 80.8
+  },
+  "avg_metric": {
+    "HateMM": 87.5,
+    "MultiHateClip_CN": 82.4,
+    "MultiHateClip_EN": 79.1
+  },
+  "best_iteration": 3,
   "review_thread_id": null,
-  "decision": null,
-  "timestamp": "2026-04-09T00:00:00",
+  "decision": "refine",
+  "timestamp": "2026-04-09T13:30:00",
   "execution_mode": "slurm",
   "max_concurrent_gpus": 1,
-  "user": "jehc223"
+  "user": "jehc223",
+  "mllm_inference_complete": true,
+  "datasets_processed": ["HateMM", "MultiHateClip_CN", "MultiHateClip_EN"],
+  "running_job": 7693
 }
