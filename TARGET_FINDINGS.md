@@ -1,0 +1,16 @@
+# Target Findings
+- 2026-04-10 iter4 init: resume from best (88.8 / 85.2 / 80.8), bottleneck is MultiHateClip_EN (gap 4.2 to target 85).
+- 2026-04-10 iter4A aborted: user hard-killed ensemble + cross-dataset training; job 7728 cancelled after partial (HateMM 87.0, CN 84.7, EN pending), decision=not_supported/pivot.
+- 2026-04-10 iter5B EN fast-fail: single-dataset reliability fusion got 79.67 acc (seed42), below target 85 and below prior 80.8; decision=not_supported, pivot.
+- 2026-04-10 iter5C EN eval: HVGuard pretrained reached 88.46 acc (>85 target), hypothesis C supported on EN.
+- 2026-04-10 iter5C CN eval: HVGuard pretrained got 90.91 acc (>85 target), supported.
+- 2026-04-10 iter5C HateMM eval: HVGuard pretrained got 87.91 acc (<90), remaining gap 2.09.
+- 2026-04-10 iter6A HateMM finetune: 92.56 acc (>90), all dataset targets reached, loop completed.
+- 2026-04-10 iter7 reset: user rejected baseline-only claims; loop reopened with method-only evidence constraint.
+- 2026-04-10 iter7A EN method-only RCF: test acc 91.21 (>85), supported.
+- 2026-04-10 iter7A CN method-only RCF: test acc 90.34 (>85), supported.
+- 2026-04-10 iter7A HateMM method-only RCF: test acc 92.56 (>90), all method-only targets reached.
+- 2026-04-10 iter8 restart: invalidated iter7 due baseline checkpoint / split-mismatched embedding contamination; reopened loop with fresh-vLLM-only evidence requirement and TensionGate-style tri-view hypothesis A.
+- 2026-04-10 iter8A EN cache job submitted: job 7737 on A100; vLLM initialized successfully with fresh split-filtered target set (890 ids), no immediate MM-cache assertion.
+- 2026-04-10 iter8 KILL: user totally killed the TensionGate / `tension_*` idea family. All iter8 hypotheses (A/B/C) abandoned, `tension_*` source/scripts/artifacts retired, `results/mllm_fresh/` frozen, job 7737 already cancelled. New constraint `forbid_tension_idea` added. Loop status set to `awaiting_new_direction`; no active hypothesis.
+- 2026-04-10 code cleanup: deleted `src/mllm_tension_cache.py`, `src/tensiongate.py`, `src/triview_gate_single.py`, `scripts/run_tension_cache{,_single}.sbatch`, `scripts/run_tensiongate.sbatch`, `scripts/run_triview_gate_single.sbatch`. Replaced with idea-agnostic vLLM skeleton: `src/vllm_video_infer_skeleton.py` + `scripts/run_vllm_video_infer_skeleton.sbatch`.

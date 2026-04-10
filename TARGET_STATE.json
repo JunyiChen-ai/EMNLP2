@@ -1,0 +1,85 @@
+{
+  "iteration": 8,
+  "active_hypothesis": null,
+  "status": "awaiting_new_direction",
+  "execution_policy": "slurm_only",
+  "target": {
+    "metric_name": "accuracy",
+    "thresholds": {
+      "HateMM": 90.0,
+      "MultiHateClip_CN": 85.0,
+      "MultiHateClip_EN": 85.0
+    }
+  },
+  "constraints": {
+    "max_concurrent_gpus": 1,
+    "single_job_serial": true,
+    "forbid_ensemble": true,
+    "forbid_cross_dataset_training": true,
+    "single_dataset_train_eval_only": true,
+    "single_dataset_per_job": true,
+    "forbid_baseline_only_claims": true,
+    "forbid_baseline_checkpoint_loading": true,
+    "forbid_old_mllm_rationale_embeddings": true,
+    "require_fresh_vllm_queries": true,
+    "forbid_tension_idea": true
+  },
+  "killed_idea_lines": [
+    {
+      "name": "TensionGate / tension_*",
+      "killed_at": "2026-04-10",
+      "reason": "User totally killed the line. Contaminated by baseline-checkpoint and split-mismatched embedding reuse; reframings into fresh tri-view tension classifier also retired. Any pairwise relation-card / tension-gate / counterfactual-attribution-distillation method is forbidden.",
+      "retired_artifacts": [
+        "src/mllm_tension_cache.py (DELETED)",
+        "src/tensiongate.py (DELETED)",
+        "src/triview_gate_single.py (DELETED)",
+        "scripts/run_tension_cache.sbatch (DELETED)",
+        "scripts/run_tension_cache_single.sbatch (DELETED)",
+        "scripts/run_tensiongate.sbatch (DELETED)",
+        "scripts/run_triview_gate_single.sbatch (DELETED)",
+        "results/mllm_fresh/ (frozen)"
+      ],
+      "replacement_skeleton": [
+        "src/vllm_video_infer_skeleton.py",
+        "scripts/run_vllm_video_infer_skeleton.sbatch"
+      ]
+    }
+  ],
+  "reference_metrics": {
+    "HateMM": 88.8,
+    "MultiHateClip_CN": 85.2,
+    "MultiHateClip_EN": 80.8
+  },
+  "invalidated_metrics": {
+    "HateMM": 92.55813953488372,
+    "MultiHateClip_CN": 90.3409090909091,
+    "MultiHateClip_EN": 91.20879120879121
+  },
+  "current_metrics": {
+    "HateMM": null,
+    "MultiHateClip_CN": null,
+    "MultiHateClip_EN": null
+  },
+  "last_jobs": [
+    {
+      "job_id": 7737,
+      "name": "tcache1",
+      "dataset": "MultiHateClip_EN",
+      "status": "cancelled_by_user",
+      "log": "/data/jehc223/EMNLP2/logs/tension_cache_single_7737.log",
+      "artifacts": "/data/jehc223/EMNLP2/results/mllm_fresh/MultiHateClip_EN",
+      "kill_reason": "TensionGate idea family killed 2026-04-10; user cancelled job 7737 before code/script deletion.",
+      "progress": {
+        "completed_entries": 10,
+        "total_entries": 890,
+        "rate_vid_per_sec": 0.1
+      }
+    }
+  ],
+  "last_metrics": {
+    "HateMM": null,
+    "MultiHateClip_CN": null,
+    "MultiHateClip_EN": null
+  },
+  "updated_at": "2026-04-10T00:00:00+00:00"
+}

@@ -1,9 +1,0 @@
-[
-  {
-    "model": "rcd",
-    "seed": 42,
-    "acc": null,
-    "f1": null,
-    "error": "The size of tensor a (2) must match the size of tensor b (3) at non-singleton dimension 1"
-  }
-]

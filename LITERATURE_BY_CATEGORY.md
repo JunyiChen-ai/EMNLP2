@@ -843,10 +843,182 @@ Papers that use a two-stage pipeline: Stage 1 uses an MLLM/VLM to analyze multim
 
 ---
 
-**Total papers**: 129
+---
+
+## Category F: Retrieval-Augmented Multimodal Classification (with/without MLLM-enhanced retrieval)
+
+Papers that use **multimodal retrieval** (often MLLM- or VLM-powered) to improve a downstream **multimodal classification** task — either by (a) using MLLMs to build a stronger retriever whose outputs are then consumed by a classifier/MLLM head, (b) using retrieval-augmentation to boost a trained multimodal classifier's accuracy/robustness/OOD-generalization, or (c) using MLLMs to enhance an existing trained multimodal classifier via retrieved multimodal context. Spans hateful-meme/misinformation classification, image classification, fine-grained recognition, video classification, and test-time adaptation.
+
+---
+
+### F.1 Retrieval-Augmented Hateful Meme / Misinformation Classification
+
+**F1.** "RA-HMD: Robust Adaptation of Large Multimodal Models for Retrieval Augmented Hateful Meme Detection" — **EMNLP 2025** (Mei et al.)
+- Two-stage LMM-RGCL fine-tuning of a LMM + retrieval-augmented KNN classifier; uses retrieved few-shot meme examples instead of in-context learning; SOTA on 6 meme datasets in-domain, OOD, and under adversarial attacks; outperforms much larger agentic systems
+- paper: https://aclanthology.org/2025.emnlp-main.1215/ | arXiv: https://arxiv.org/abs/2502.13061 | code: https://github.com/JingbiaoMei/RGCL
+- **Most directly aligned**: retrieval-augmented LMM whose final stage is hateful-meme classification — exactly the "MLLM-enhanced retrieval → multimodal classification" template
+
+**F2.** "RGCL: Improving Hateful Meme Detection through Retrieval-Guided Contrastive Learning" — **ACL 2024** (Mei et al.)
+- Dynamic retrieval of pseudo-gold positives + hard negatives during training; contrastive loss + cross-entropy on CLIP-based meme classifier; AUROC 87.0 on HatefulMemes; supports zero-shot updates by adding new examples without retraining
+- paper: https://aclanthology.org/2024.acl-long.291/ | code: https://github.com/JingbiaoMei/RGCL
+- Foundational version of F1; pure "retrieval improves classifier" without MLLM
+
+**F3.** "MoRE: Mixture of Retrieval-Augmented Multimodal Experts for Short Video Hate Detection" — **WWW 2025**
+- Mixture of retrieval-augmented multimodal experts + joint video retriever + dynamic integration; +6.91% M-F1 over SOTA on short video hate
+- paper: https://dl.acm.org/doi/10.1145/3696410.3714560
+- (cross-listed: A.3) — direct example of retrieval boosting a video hate classifier
+
+**F4.** "RAPN: A Retrieval-Augmented Prompting Network for Hateful Meme Detection" — **Frontiers in Physics 2025**
+- Retrieval-augmented selector identifies semantically relevant prompting examples from diverse sources; feeds them into a prompted classifier
+- paper: https://www.frontiersin.org/journals/physics/articles/10.3389/fphy.2025.1614267/full
+
+**F5.** "RAEDCo: Retrieval Augmented Enhanced Dual Co-Attention Framework for Target-Aware Multimodal Bengali Hateful Meme Detection" — **arXiv 2026**
+- Cross-lingual retrieval augmentation feeds dual co-attention multimodal classifier; target-aware hate
+- paper: https://arxiv.org/abs/2602.19212
+
+**F6.** "RAMA: Retrieval-Augmented Multi-Agent Framework for Misinformation Detection in Multimodal Fact-Checking" — **arXiv 2025.07**
+- Web retrieval + multi-MLLM agent ensemble (LLaVA / GPT-4V) for multimodal claim verification; final stage is veracity classification
+- paper: https://arxiv.org/abs/2507.09174
+- Closest "MLLM + retrieval → classification" recipe in the misinformation domain
+
+### F.2 MLLM-Enhanced Multimodal Retrieval (the retriever side, downstream feeds classifiers)
+
+**F7.** "Bridging Modalities: Improving Universal Multimodal Retrieval by Multimodal Large Language Models" — **CVPR 2025**
+- Fine-tunes MLLM-based universal retrievers + uses pretrained MLLMs as zero-shot rerankers over candidates; mines hard negatives from top-50; LLaVA-Next backbone; strong on interleaved-modal retrieval that downstream classifiers consume
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Zhang_Bridging_Modalities_Improving_Universal_Multimodal_Retrieval_by_Multimodal_Large_Language_CVPR_2025_paper.pdf
+- Authoritative reference: "MLLM as multimodal retriever" — exact mechanism for upstream of classification
+
+**F8.** "LamRA: Large Multimodal Model as Your Advanced Retrieval Assistant" — **CVPR 2025**
+- Inserts lightweight LoRA modules into an LMM to enable both retrieval and reranking; the same LMM acts as retriever + reranker for downstream multimodal tasks
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Liu_LamRA_Large_Multimodal_Model_as_Your_Advanced_Retrieval_Assistant_CVPR_2025_paper.pdf
+
+**F9.** "MM-Embed: Universal Multimodal Retrieval with Multimodal LLMs" — **ICLR 2025**
+- First universal multimodal retriever achieving SOTA on multimodal retrieval while remaining competitive on text-to-text; MLLM fine-tuned with hard negatives; modality-aware bias mitigation
+- paper: https://proceedings.iclr.cc/paper_files/paper/2025/file/6d5d6afa9957cfc9142ba60e78a467e9-Paper-Conference.pdf
+
+**F10.** "RagVL: MLLM Is a Strong Reranker — Knowledge-Enhanced Reranking and Noise-Injected Training for Multimodal RAG" — **EMNLP 2025 Findings / OpenReview**
+- MLLM reranks retrieved candidates with knowledge-enhanced prompting + noise-injected training to robustify the retrieval-aware classifier
+- paper: https://aclanthology.org/2025.findings-emnlp.432.pdf | openreview: https://openreview.net/forum?id=TPtzZQyiFm
+
+**F11.** "MLLM-I2W: Harnessing Multimodal Large Language Model for Zero-Shot Composed Image Retrieval" — **COLING 2025**
+- MLLM converts image into pseudo-word markers used to compose retrieval queries; supports downstream zero-shot recognition / retrieval-classification
+- paper: https://aclanthology.org/2025.coling-main.125/
+
+**F12.** "Roles of MLLMs in Visually Rich Document Retrieval for RAG" — **IJCNLP 2025**
+- Systematic study of three MLLM roles (Modality-Unifying Captioner, Multimodal Embedder, End-to-End Representer) for document retrieval whose downstream tasks include classification and QA
+- paper: https://aclanthology.org/2025.ijcnlp-long.2.pdf
+
+### F.3 Retrieval-Augmented Vision-Language Classification (Image / Open-World)
+
+**F13.** "RA-TTA: Retrieval-Augmented Test-Time Adaptation for Vision-Language Models" — **ICLR 2025**
+- Retrieves external images from a web-scale database at test time; uses fine-grained text descriptions to extend external-knowledge granularity; refines VLM zero-shot classification predictions; +3.01-9.63% over SOTA on 17 datasets
+- paper: https://proceedings.iclr.cc/paper_files/paper/2025/file/fa1790d7c3036c691d0b2fb3b9a0ce64-Paper-Conference.pdf | code: https://github.com/kaist-dmlab/RA-TTA
+- Pure example: retrieval directly enhances a trained VLM classifier without fine-tuning
+
+**F14.** "Test-Time Retrieval-Augmented Adaptation for Vision-Language Models (TT-RAA)" — **ICCV 2025**
+- Combines retrieval results from vision and multimodal spaces with CLIP's original predictions at test time; training-free improvement of VLM classification under distribution shift
+- paper: https://openaccess.thecvf.com/content/ICCV2025/papers/Fan_Test-Time_Retrieval-Augmented_Adaptation_for_Vision-Language_Models_ICCV_2025_paper.pdf
+
+**F15.** "RAP: Retrieval-Augmented Personalization for Multimodal Large Language Models" — **CVPR 2025**
+- Personalizes MLLMs to new users/concepts via retrieval over a personal multimodal memory; no further training; downstream task is per-user multimodal recognition / classification
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Hao_RAP_Retrieval-Augmented_Personalization_for_Multimodal_Large_Language_Models_CVPR_2025_paper.pdf
+
+**F16.** "On Large Multimodal Models as Open-World Image Classifiers" — **ICCV 2025**
+- Studies LMMs as open-world classifiers; finds CLIP retrieval still slightly beats LMMs on fine-grained classification but LMMs win on complex/interleaved discrimination — motivates LMM+retrieval hybrids
+- paper: https://openaccess.thecvf.com/content/ICCV2025/papers/Conti_On_Large_Multimodal_Models_as_Open-World_Image_Classifiers_ICCV_2025_paper.pdf
+
+### F.3 Earlier Foundations
+
+**F17.** "RA-CLIP: Retrieval Augmented Contrastive Language-Image Pre-Training" — **CVPR 2023**
+- Holds out part of image-text data as a reference set; retrieves relevant pairs at training time to enrich input-image embedding; +12.7% over CLIP zero-shot classification
+- paper: https://openaccess.thecvf.com/content/CVPR2023/papers/Xie_RA-CLIP_Retrieval_Augmented_Contrastive_Language-Image_Pre-Training_CVPR_2023_paper.pdf
+- Foundational "retrieval-during-training improves the classifier" paper
+
+**F18.** "RAFIC: Retrieval-Augmented Few-Shot Image Classification" — **arXiv 2023 / Stanford CS330**
+- Uses CLIP + LAION-5B + faiss to retrieve contextually similar images for few-shot examples; meta-learning to judiciously use retrieved images; markedly improves few-shot classification
+- paper: https://arxiv.org/abs/2312.06868
+- Pure form of "retrieval boosts a trained classifier in low-data regime"
+
+### F.4 Latest arXiv Preprints (2025.10 – 2026.03)
+
+**F19a.** "PatMD: Learning from Mistakes — Enhancing Harmful Meme Detection via Misjudgment Risk Patterns" — **arXiv 2510.15946** (Oct 2025)
+- 3-stage pipeline: (1) Misjudgment Risk Pattern Elicitation builds a hierarchical harm tree of past MLLM mistakes; (2) Risk-aware Pattern Retrieval fetches similar patterns; (3) Pattern-augmented Reasoning prompts MLLM to avoid known pitfalls; +7.26% F1 over baselines
+- paper: https://arxiv.org/abs/2510.15946
+- **Highly relevant**: pure "retrieval of past MLLM errors → enhances trained multimodal classifier" pattern
+
+**F19b.** "RGE: Reasoning Guided Embeddings — Leveraging MLLM Reasoning for Improved Multimodal Retrieval" — **arXiv 2511.16150** (Nov 2025)
+- Preserves MLLM generative-rationale process and couples it with contrastive training; structured rationale generation followed by representation extraction; downstream feeds multimodal retrieval-classification pipelines
+- paper: https://arxiv.org/abs/2511.16150
+- Direct "MLLM reasoning enhances retrieval" mechanism
+
+**F19c.** "TRACE: Task-Adaptive Reasoning and Representation Learning for Universal Multimodal Retrieval" — **arXiv 2603.02929** (Mar 2026)
+- Generates a structured Chain-of-Thought to reason about queries, then compresses the reasoning trace into a compact embedding for universal multimodal retrieval; downstream classification benefits from task-adaptive embeddings
+- paper: https://arxiv.org/abs/2603.02929
+
+**F19d.** "RetLLM: Training and Data-Free MLLMs for Multimodal Information Retrieval" — **arXiv 2602.22278** (Feb 2026)
+- Reframes MMIR as a similarity-score generation task done by frozen MLLMs; no training, no data; can be plugged in front of any multimodal classifier
+- paper: https://arxiv.org/abs/2602.22278
+
+**F19e.** "CIRCLE: Large Multimodal Models as General In-Context Classifiers" — **arXiv 2602.23229** (Feb 2026)
+- Demonstrates LMMs as general in-context classifiers using retrieved support examples; surpasses CLIP/VLM open-world classification baselines on complex tasks
+- paper: https://arxiv.org/abs/2602.23229
+- Closely related: in-context retrieved examples → MLLM classifier
+
+**F19f.** "Retrieval-Augmented Multimodal Depression Detection" — **arXiv 2511.01892** (Nov 2025)
+- RAG framework for multimodal depression classification across text/audio/video; retrieves analogous reference cases
+- paper: https://arxiv.org/abs/2511.01892
+
+**F19g.** "Dynamic Content Moderation in Livestreams: Combining Supervised Classification with MLLM-Boosted Similarity Matching" — **arXiv 2512.03553** (Dec 2025)
+- Two parallel paths: supervised multiclass classifier (preset violation) + similarity retrieval refined by an MLLM re-ranker that evaluates cross-modal alignment
+- paper: https://arxiv.org/html/2512.03553
+- Cross-listed: extends A.1 H2; explicitly the "MLLM enhances trained multimodal classifier via retrieval" pattern
+
+**F19h.** "MLDocRAG: Multimodal Long-Context Document Retrieval Augmented Generation" — **arXiv 2602.10271** (Feb 2026)
+- Multimodal Chunk-Query Graph organizes content around answerable queries; supports document-level multimodal classification + QA
+- paper: https://arxiv.org/abs/2602.10271
+
+**F19i.** "AgriChat: An MLLM for Agricultural Image Understanding via Retrieval-Augmented Fine-Grained Classification" — **arXiv 2603.16934** (Mar 2026)
+- MLLM fine-tuned on widest range of agricultural species; SOTA on fine-grained species ID, disease classification, crop counting; uses retrieval for rare-species disambiguation
+- paper: https://arxiv.org/html/2603.16934
+
+**F19j.** "All Changes May Have Invariant Principles: Improving Ever-Shifting Harmful Meme Detection via Design Concept Reproduction" — **arXiv 2601.04567** (Jan 2026)
+- Design-concept retrieval for ever-shifting harmful memes; updates the trained classifier without retraining
+- paper: https://arxiv.org/html/2601.04567
+
+### F.5 Document / Long-Form Multimodal Retrieval-Augmented Classification
+
+**F19.** "VDocRAG: Retrieval-Augmented Generation over Visually-Rich Documents" — **CVPR 2025**
+- RAG over visually-rich documents (charts, tables, PDF, PPTX); strong generalization; downstream task includes document classification + QA
+- paper: https://cvpr.thecvf.com/virtual/2025/poster/34926
+
+**F20.** "VRAG: Retrieval-Augmented Video Question Answering for Long-Form Videos" — **CVPR 2025 Workshops**
+- Retrieves relevant video segments first, then chunk-and-refine; downstream is video VQA / classification
+- paper: https://openaccess.thecvf.com/content/CVPR2025W/IViSE/papers/Gia_VRAG_Retrieval-Augmented_Video_Question_Answering_for_Long-Form_Videos_CVPRW_2025_paper.pdf
+
+**F21.** "Vision-Free Retrieval: Rethinking Multimodal Search with Textual Scene Descriptions" — **EMNLP 2025**
+- Uses MLLM-generated textual scene descriptions instead of visual features for multimodal retrieval; downstream classifier consumes the retrieved text-only representations
+- paper: https://aclanthology.org/2025.emnlp-main.709/
+- Strong fit for the "MLLM textualization → retrieval → classification" pipeline
+
+---
+
+## Cross-Reference Update for Category F
+
+| Paper | Cat A | Cat B | Cat C | Cat D | Cat E | Cat F |
+|---|---|---|---|---|---|---|
+| RA-HMD (EMNLP 2025) | Hateful meme | — | — | — | — | LMM + retrieval-KNN classifier |
+| MoRE (WWW 2025) | Video hate detection | — | — | — | — | Mixture of retrieval-augmented experts |
+| RGCL (ACL 2024) | Hateful meme | Contrastive fusion | — | — | — | Retrieval-guided contrastive classifier |
+| RA-CLIP (CVPR 2023) | — | — | — | — | — | Retrieval during pretraining → classifier |
+| RA-TTA (ICLR 2025) | — | — | — | — | — | Retrieval-augmented VLM classifier (test-time) |
+
+---
+
+**Total papers**: 160
 **Category A (Video Understanding)**: 47 papers across 8 sub-categories
 **Category B (Multimodal Fusion)**: 32 papers across 5 sub-categories
 **Category C (Interleaved Reasoning)**: 15 papers + 2 surveys across 7 sub-categories
 **Category D (Simple-to-Hard / Cascade)**: 16 papers across 5 sub-categories
 **Category E (MLLM→Classifier)**: 26 papers across 4 sub-categories
+**Category F (Retrieval-Augmented Multimodal Classification)**: 31 papers across 5 sub-categories (incl. 10 latest arXiv 2025.10–2026.03)
 **Cross-listed**: 16 papers appear in multiple categories
