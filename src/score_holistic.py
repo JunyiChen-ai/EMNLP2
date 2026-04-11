@@ -220,6 +220,7 @@ def main():
         max_model_len=16384,
         limit_mm_per_prompt={"image": args.n_frames},
         allowed_local_media_path="/data/jehc223",
+        mm_processor_kwargs={"max_pixels": 1003520},
     )
 
     tokenizer = llm.get_tokenizer()

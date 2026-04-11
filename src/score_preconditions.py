@@ -359,6 +359,7 @@ def main():
         allowed_local_media_path="/data/jehc223",
         limit_mm_per_prompt={"image": args.max_frames},
         max_logprobs=max(20, args.num_logprobs),
+        mm_processor_kwargs={"max_pixels": 1003520},
     )
     tokenizer = llm.get_tokenizer()
     label_token_ids = build_label_token_ids(tokenizer)
