@@ -1,0 +1,152 @@
+[
+  {
+    "rule_id": "YT-R1",
+    "name": "Encourage violence",
+    "original": "Encourage violence against individuals or groups based on their protected group status. This includes threats on YouTube, and implied calls for violence are treated as real threats.",
+    "objectified": "A video violates this rule if it contains clear, direct, and unambiguous calls to violence — including threats — directed at individuals or groups based on their protected group status (e.g., race, religion, gender, sexual orientation, disability, national origin). The rule does not apply to metaphorical language, satire, or rhetorical hyperbole that lacks a clear intent to incite immediate harm or violence. Determinations must be based solely on observable visual, audio, and textual content, and must meet a high threshold of specificity and immediacy to constitute a violation. This rule is designed to prohibit actionable threats, not to censor speech that is protected under free expression principles.\n\n—  \n*Objective, actionable, and verifiable from visual/audio/text content.  \nPreserves intent to prohibit actual threats, while avoiding overreach on ambiguous or metaphorical expression.*",
+    "objectiveness_score": 9,
+    "iterations": 2,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Encourage violence against individuals or groups based on their protected group status. This includes threats on YouTube, and implied calls for violence are treated as real threats.",
+        "score": 3,
+        "feedback": "Explanation: The guideline is objectively problematic because it conflates implied or metaphorical language with actionable threats, potentially criminalizing speech that is protected under free expression laws in many jurisdictions. It also lacks nuance — for example, distinguishing between hate speech and incitement to violence — and may suppress legitimate discourse. Furthermore, treating “implied calls for violence” as real threats risks overreach and may violate constitutional or human rights protections. The guideline is not neutral or balanced; it leans toward censorship and enforcement without clear, legally defensible thresholds.\n\nRating: 3/10"
+      },
+      {
+        "iteration": 1,
+        "text": "A video violates this rule if it contains clear, direct, and unambiguous calls to violence — including threats — directed at individuals or groups based on their protected group status (e.g., race, religion, gender, sexual orientation, disability, national origin). The rule does not apply to metaphorical language, satire, or rhetorical hyperbole that lacks a clear intent to incite immediate harm or violence. Determinations must be based solely on observable visual, audio, and textual content, and must meet a high threshold of specificity and immediacy to constitute a violation. This rule is designed to prohibit actionable threats, not to censor speech that is protected under free expression principles.\n\n—  \n*Objective, actionable, and verifiable from visual/audio/text content.  \nPreserves intent to prohibit actual threats, while avoiding overreach on ambiguous or metaphorical expression.*",
+        "score": 9,
+        "feedback": "The guideline is designed to be narrowly focused on preventing actionable threats, which is a legitimate and necessary boundary in content moderation. It explicitly excludes metaphorical, satirical, or rhetorical expressions that lack intent to incite immediate harm — a crucial safeguard against overreach. The requirement for “clear, direct, and unambiguous” calls to violence, coupled with the emphasis on “high threshold of specificity and immediacy,” ensures that only the most egregious content triggers a violation. The rule also explicitly references protected group status, aligning with legal and ethical standards for hate speech regulation. The stipulation that determinations must be based solely on observable content further enhances objectivity by limiting subjective interpretation. While the guideline is not perfect — for example, it may struggle with borderline cases involving ambiguous rhetoric — its structure is deliberately constrained to avoid censorship of protected speech, which is a commendable and necessary balance.\n\nRating: 9/10\n\n(9 because while the guideline is highly objective in its structure and intent, real-world application may still involve subjective interpretation of “immediacy” or “intent,” especially in complex or culturally nuanced contexts — but these are inherent challenges in content moderation, not flaws in the guideline’s design.)"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R2",
+    "name": "Incite hatred",
+    "original": "Incite hatred against individuals or groups based on their protected group status.",
+    "objectified": "Incite hatred against individuals or groups based on their protected group status.",
+    "objectiveness_score": 10,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Incite hatred against individuals or groups based on their protected group status.",
+        "score": 10,
+        "feedback": "Explanation: The guideline “Incite hatred against individuals or groups based on their protected group status” is inherently objective in its intent — it seeks to prohibit speech or behavior that promotes violence, discrimination, or hostility toward identifiable groups (e.g., race, religion, gender, sexual orientation, etc.). It is a clear, measurable standard that does not depend on subjective interpretation or personal opinion. The guideline is designed to protect vulnerable populations and uphold social cohesion, and its application can be evaluated against established legal or ethical frameworks (e.g., hate speech laws, human rights conventions). While enforcement may involve some discretion, the standard itself is neutral and fact-based.\n\nRating: 10/10"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R3",
+    "name": "Dehumanization",
+    "original": "Dehumanization of individuals or groups by calling them subhuman, comparing them to animals, insects, pests, disease, or any other non-human entity based on their protected group status.",
+    "objectified": "Dehumanization of individuals or groups by calling them subhuman, comparing them to animals, insects, pests, disease, or any other non-human entity based on their protected group status.",
+    "objectiveness_score": 9,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Dehumanization of individuals or groups by calling them subhuman, comparing them to animals, insects, pests, disease, or any other non-human entity based on their protected group status.",
+        "score": 9,
+        "feedback": "Explanation: The guideline is objective in its intent — it seeks to prohibit language that dehumanizes individuals or groups based on protected characteristics (e.g., race, religion, gender, etc.). It clearly defines prohibited speech by specifying concrete examples (e.g., calling people “subhuman,” comparing them to “animals” or “pests”). The language is neutral, focused on content rather than intent or context, and does not favor any group. It avoids subjective interpretations by using measurable, explicit criteria. However, it could be slightly improved by clarifying whether intent or context matters (e.g., satire, historical reference, or rhetorical use), but as written, it remains largely objective.\n\nRating: 9/10"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R4",
+    "name": "Praise or glorification of violence",
+    "original": "Praise or glorification of violence against individuals or groups based on their protected group status.",
+    "objectified": "Praise or glorification of violence against individuals or groups based on their protected group status.",
+    "objectiveness_score": 10,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Praise or glorification of violence against individuals or groups based on their protected group status.",
+        "score": 10,
+        "feedback": "Explanation: The guideline is objective in its intent — it seeks to prohibit the praise or glorification of violence targeting individuals or groups based on protected characteristics such as race, religion, gender, sexual orientation, etc. It is a clear, narrowly defined standard that does not depend on subjective interpretation or personal opinion. The guideline applies uniformly to all protected groups and does not favor or disadvantage any particular group or viewpoint. It is grounded in principles of human rights and non-discrimination, which are widely accepted in legal and ethical frameworks.\n\nRating: 10/10"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R5",
+    "name": "Slurs and stereotypes",
+    "original": "Use of racial, religious, or other slurs and stereotypes that incite or promote hatred based on protected group status. This can take the form of speech, text, or imagery promoting these stereotypes or treating them as factual.",
+    "objectified": "Use of racial, religious, or other slurs and stereotypes that incite or promote hatred based on protected group status. This can take the form of speech, text, or imagery promoting these stereotypes or treating them as factual.",
+    "objectiveness_score": 9,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Use of racial, religious, or other slurs and stereotypes that incite or promote hatred based on protected group status. This can take the form of speech, text, or imagery promoting these stereotypes or treating them as factual.",
+        "score": 9,
+        "feedback": "The guideline is objective in its intent: it seeks to prohibit speech or content that incites or promotes hatred based on protected group status, regardless of the medium (speech, text, imagery). It is narrowly focused on harmful content that targets protected groups and does not impose subjective or culturally relative standards. The language is clear and avoids ambiguity by specifying prohibited forms (slurs, stereotypes, incitement) and contexts (speech, text, imagery). It does not favor or disadvantage any particular group, nor does it rely on emotional or moral judgments that could vary across individuals or cultures.\n\nRating: 9/10\n\n(9 because while the guideline is highly objective, it may be interpreted differently in practice depending on context or jurisdiction — for example, what constitutes “incitement” or “stereotype” may vary — but the core intent and wording remain neutral and fact-based.)"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R6",
+    "name": "Claims of inferiority",
+    "original": "Claim that individuals or groups are physically or mentally inferior, deficient, or diseased based on their protected group status. This includes statements that one group is less than another, calling them less intelligent or less capable. This also includes calls for the subjugation or domination over individuals or groups based on their protected group status.",
+    "objectified": "Claim that individuals or groups are physically or mentally inferior, deficient, or diseased based on their protected group status. This includes statements that one group is less than another, calling them less intelligent or less capable. This also includes calls for the subjugation or domination over individuals or groups based on their protected group status.",
+    "objectiveness_score": 10,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Claim that individuals or groups are physically or mentally inferior, deficient, or diseased based on their protected group status. This includes statements that one group is less than another, calling them less intelligent or less capable. This also includes calls for the subjugation or domination over individuals or groups based on their protected group status.",
+        "score": 10,
+        "feedback": "The guideline is objectively defined and clearly targets harmful speech that discriminates against protected groups by asserting their inferiority or advocating for their subjugation. It avoids subjective interpretation by focusing on concrete actions — such as labeling groups as “less intelligent” or “less capable” — and explicitly includes calls for domination or subjugation. The language is neutral and does not impose value judgments beyond what is necessary to identify prohibited conduct. It is consistent with widely accepted principles of anti-discrimination and human rights, and its scope is appropriately broad to cover both explicit and implicit forms of dehumanizing rhetoric.\n\nRating: 10/10"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R7",
+    "name": "Hateful supremacism",
+    "original": "Promotion of hateful supremacism by alleging the superiority of a group over those with protected group status to justify violence, discrimination, segregation, or exclusion. This includes content containing hateful supremacist propaganda, such as the recruitment of new members or requests for financial support for their ideology, and music videos promoting hateful supremacism in the lyrics, metadata, or imagery.",
+    "objectified": "Promotion of hateful supremacism by alleging the superiority of a group over those with protected group status to justify violence, discrimination, segregation, or exclusion. This includes content containing hateful supremacist propaganda, such as the recruitment of new members or requests for financial support for their ideology, and music videos promoting hateful supremacism in the lyrics, metadata, or imagery.",
+    "objectiveness_score": 10,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Promotion of hateful supremacism by alleging the superiority of a group over those with protected group status to justify violence, discrimination, segregation, or exclusion. This includes content containing hateful supremacist propaganda, such as the recruitment of new members or requests for financial support for their ideology, and music videos promoting hateful supremacism in the lyrics, metadata, or imagery.",
+        "score": 10,
+        "feedback": "The guideline is objectively defined and clearly delineates prohibited content by specifying concrete behaviors and forms of expression — such as recruitment, financial solicitation, and music videos with hateful supremacist messaging. It avoids subjective interpretation by focusing on measurable actions (e.g., “alleging superiority,” “justifying violence,” “promoting propaganda”) and includes specific examples (lyrics, metadata, imagery). The language is neutral and does not imply bias toward any particular group or ideology, and it applies uniformly to all forms of media or expression that meet the described criteria. There is no ambiguity in intent or scope.\n\nRating: 10/10"
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R8",
+    "name": "Conspiratorial claims",
+    "original": "Conspiratorial claims that individuals or groups are evil, corrupt, or malicious based on their protected group status.",
+    "objectified": "Conspiratorial claims that individuals or groups are evil, corrupt, or malicious based on their protected group status.",
+    "objectiveness_score": 9,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Conspiratorial claims that individuals or groups are evil, corrupt, or malicious based on their protected group status.",
+        "score": 9,
+        "feedback": "Explanation: The guideline aims to prohibit evaluating individuals or groups based on their membership in a protected class (e.g., race, religion, gender, sexual orientation) when making claims about their moral character (e.g., “evil,” “corrupt,” “malicious”). This is a reasonable objective to prevent discrimination and bias in discourse. The guideline is narrowly focused on protecting against harmful stereotyping and prejudice, rather than restricting legitimate criticism of behavior or ideology. It does not inherently favor any group or ideology, and its intent is to uphold fairness and dignity in public discourse.\n\nRating: 9/10\n\nReason: The guideline is largely objective and well-defined, but it could be slightly more precise by specifying whether it applies to all contexts (e.g., journalism, legal proceedings, social media) or only certain ones. However, this minor ambiguity does not undermine its core objectivity."
+      }
+    ]
+  },
+  {
+    "rule_id": "YT-R9",
+    "name": "Denial of violent events",
+    "original": "Denial or minimization of a well-documented, major violent event or the victimhood of such an event.",
+    "objectified": "Denial or minimization of a well-documented, major violent event or the victimhood of such an event.",
+    "objectiveness_score": 9,
+    "iterations": 1,
+    "history": [
+      {
+        "iteration": 0,
+        "text": "Denial or minimization of a well-documented, major violent event or the victimhood of such an event.",
+        "score": 9,
+        "feedback": "Explanation: The guideline is objective in its intent — it seeks to identify and condemn the denial or minimization of a major, well-documented violent event and the suffering of its victims. It does not impose subjective moral judgments, nor does it favor any particular group, ideology, or historical interpretation. The phrasing is factual and focused on verifiable historical or documented events, avoiding emotional language or value-laden assumptions. It is designed to be applied consistently across contexts, provided the event meets the criteria of being “well-documented” and “major violent.”\n\nRating: 9/10\n\nReason for 9: While the guideline is largely objective, it implicitly assumes that “well-documented” events are universally recognized as such — which may vary by cultural, political, or historical context. A more nuanced guideline might acknowledge that documentation can be contested or incomplete, though this would reduce its simplicity and potentially weaken its enforceability. Still, the core intent remains objective and principled."
+      }
+    ]
+  }
+]

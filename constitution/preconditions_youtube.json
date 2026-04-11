@@ -1,0 +1,102 @@
+[
+  {
+    "rule_id": "YT-R1",
+    "name": "Encourage violence",
+    "objectified_rule": "A video violates this rule if it contains clear, direct, and unambiguous calls to violence — including threats — directed at individuals or groups based on their protected group status (e.g., race, religion, gender, sexual orientation, disability, national origin). The rule does not apply to metaphorical language, satire, or rhetorical hyperbole that lacks a clear intent to incite immediate harm or violence. Determinations must be based solely on observable visual, audio, and textual content, and must meet a high threshold of specificity and immediacy to constitute a violation. This rule is designed to prohibit actionable threats, not to censor speech that is protected under free expression principles.\n\n—  \n*Objective, actionable, and verifiable from visual/audio/text content.  \nPreserves intent to prohibit actual threats, while avoiding overreach on ambiguous or metaphorical expression.*",
+    "preconditions": [
+      "The video contains explicit, unambiguous language or imagery that constitutes a direct threat of physical harm.",
+      "The threat is directed at individuals or groups identifiable by protected group status (e.g., race, religion, gender, sexual orientation, disability, national origin).",
+      "The threat is specific enough to be actionable — it names or clearly identifies a target or targets, and specifies a potential violent act or its timing.",
+      "The threat is not contextualized as metaphorical, satirical, or rhetorical hyperbole that lacks intent to incite immediate harm.",
+      "The threat is conveyed through at least one of: spoken audio, on-screen text, or visual imagery — and is verifiable from the video’s content without requiring external context."
+    ],
+    "raw_response": "1. The video contains explicit, unambiguous language or imagery that constitutes a direct threat of physical harm.\n2. The threat is directed at individuals or groups identifiable by protected group status (e.g., race, religion, gender, sexual orientation, disability, national origin).\n3. The threat is specific enough to be actionable — it names or clearly identifies a target or targets, and specifies a potential violent act or its timing.\n4. The threat is not contextualized as metaphorical, satirical, or rhetorical hyperbole that lacks intent to incite immediate harm.\n5. The threat is conveyed through at least one of: spoken audio, on-screen text, or visual imagery — and is verifiable from the video’s content without requiring external context."
+  },
+  {
+    "rule_id": "YT-R2",
+    "name": "Incite hatred",
+    "objectified_rule": "Incite hatred against individuals or groups based on their protected group status.",
+    "preconditions": [
+      "The video contains speech, text, or imagery that explicitly targets a specific protected group (defined by race, ethnicity, religion, gender, sexual orientation, disability, or nationality).",
+      "The content expresses or implies intent to provoke anger, fear, violence, or hostility toward that group, and is not merely quoting, condemning, or educating about the group."
+    ],
+    "raw_response": "1. The video contains speech, text, or imagery that explicitly targets a specific protected group (defined by race, ethnicity, religion, gender, sexual orientation, disability, or nationality).\n2. The content expresses or implies intent to provoke anger, fear, violence, or hostility toward that group, and is not merely quoting, condemning, or educating about the group."
+  },
+  {
+    "rule_id": "YT-R3",
+    "name": "Dehumanization",
+    "objectified_rule": "Dehumanization of individuals or groups by calling them subhuman, comparing them to animals, insects, pests, disease, or any other non-human entity based on their protected group status.",
+    "preconditions": [
+      "A specific protected group (defined by race, ethnicity, religion, gender, sexual orientation, disability, or nationality) is referenced or depicted in the video.",
+      "The video contains language or imagery that explicitly compares members of that group to animals, insects, pests, disease, subhuman entities, or any other non-human entity."
+    ],
+    "raw_response": "1. A specific protected group (defined by race, ethnicity, religion, gender, sexual orientation, disability, or nationality) is referenced or depicted in the video.\n2. The video contains language or imagery that explicitly compares members of that group to animals, insects, pests, disease, subhuman entities, or any other non-human entity."
+  },
+  {
+    "rule_id": "YT-R4",
+    "name": "Praise or glorification of violence",
+    "objectified_rule": "Praise or glorification of violence against individuals or groups based on their protected group status.",
+    "preconditions": [
+      "The video explicitly praises, glorifies, or celebrates violence in a manner that is not merely descriptive or contextual.",
+      "The violence depicted or referenced is directed against individuals or groups identifiable by protected group status (e.g., race, ethnicity, religion, gender, sexual orientation, disability, nationality).",
+      "The glorification or praise is conveyed through visual imagery, spoken language, or on-screen text — not merely as a reaction to or consequence of violence."
+    ],
+    "raw_response": "1. The video explicitly praises, glorifies, or celebrates violence in a manner that is not merely descriptive or contextual.\n2. The violence depicted or referenced is directed against individuals or groups identifiable by protected group status (e.g., race, ethnicity, religion, gender, sexual orientation, disability, nationality).\n3. The glorification or praise is conveyed through visual imagery, spoken language, or on-screen text — not merely as a reaction to or consequence of violence."
+  },
+  {
+    "rule_id": "YT-R5",
+    "name": "Slurs and stereotypes",
+    "objectified_rule": "Use of racial, religious, or other slurs and stereotypes that incite or promote hatred based on protected group status. This can take the form of speech, text, or imagery promoting these stereotypes or treating them as factual.",
+    "preconditions": [
+      "The video contains racial, religious, or other identity-based slurs or stereotypes in its speech, on-screen text, or imagery.",
+      "The slurs or stereotypes are presented in a manner that incites or promotes hatred, or are treated as factual rather than as satire, parody, or educational commentary."
+    ],
+    "raw_response": "1. The video contains racial, religious, or other identity-based slurs or stereotypes in its speech, on-screen text, or imagery.\n2. The slurs or stereotypes are presented in a manner that incites or promotes hatred, or are treated as factual rather than as satire, parody, or educational commentary."
+  },
+  {
+    "rule_id": "YT-R6",
+    "name": "Claims of inferiority",
+    "objectified_rule": "Claim that individuals or groups are physically or mentally inferior, deficient, or diseased based on their protected group status. This includes statements that one group is less than another, calling them less intelligent or less capable. This also includes calls for the subjugation or domination over individuals or groups based on their protected group status.",
+    "preconditions": [
+      "The video contains a claim, either spoken, textual, or visual, that individuals or groups are physically or mentally inferior, deficient, or diseased.",
+      "The claim is explicitly tied to a protected group status (race, ethnicity, religion, gender, sexual orientation, disability, nationality, etc.).",
+      "The claim asserts that one group is less than another, or that they are less intelligent or less capable.",
+      "The video includes a call for subjugation, domination, or control over individuals or groups based on their protected group status."
+    ],
+    "raw_response": "1. The video contains a claim, either spoken, textual, or visual, that individuals or groups are physically or mentally inferior, deficient, or diseased.\n2. The claim is explicitly tied to a protected group status (race, ethnicity, religion, gender, sexual orientation, disability, nationality, etc.).\n3. The claim asserts that one group is less than another, or that they are less intelligent or less capable.\n4. The video includes a call for subjugation, domination, or control over individuals or groups based on their protected group status."
+  },
+  {
+    "rule_id": "YT-R7",
+    "name": "Hateful supremacism",
+    "objectified_rule": "Promotion of hateful supremacism by alleging the superiority of a group over those with protected group status to justify violence, discrimination, segregation, or exclusion. This includes content containing hateful supremacist propaganda, such as the recruitment of new members or requests for financial support for their ideology, and music videos promoting hateful supremacism in the lyrics, metadata, or imagery.",
+    "preconditions": [
+      "The video explicitly or implicitly alleges the superiority of one group over another based on protected group status (race, ethnicity, religion, gender, sexual orientation, disability, nationality, etc.).",
+      "The video justifies violence, discrimination, segregation, or exclusion based on the alleged group superiority.",
+      "The video promotes hateful supremacism — either through direct propaganda, recruitment of new members, or requests for financial support for the ideology.",
+      "The video is a music video where the lyrics, metadata, or imagery promote hateful supremacism."
+    ],
+    "raw_response": "1. The video explicitly or implicitly alleges the superiority of one group over another based on protected group status (race, ethnicity, religion, gender, sexual orientation, disability, nationality, etc.).\n2. The video justifies violence, discrimination, segregation, or exclusion based on the alleged group superiority.\n3. The video promotes hateful supremacism — either through direct propaganda, recruitment of new members, or requests for financial support for the ideology.\n4. The video is a music video where the lyrics, metadata, or imagery promote hateful supremacism."
+  },
+  {
+    "rule_id": "YT-R8",
+    "name": "Conspiratorial claims",
+    "objectified_rule": "Conspiratorial claims that individuals or groups are evil, corrupt, or malicious based on their protected group status.",
+    "preconditions": [
+      "The video contains a claim that a specific individual or group is evil, corrupt, or malicious.",
+      "The claim is explicitly or implicitly based on the protected group status of that individual or group (e.g., race, ethnicity, religion, gender, sexual orientation, disability, or nationality).",
+      "The claim is presented in a conspiratorial context — implying a secret, coordinated, or hidden agenda by the group to cause harm."
+    ],
+    "raw_response": "1. The video contains a claim that a specific individual or group is evil, corrupt, or malicious.\n2. The claim is explicitly or implicitly based on the protected group status of that individual or group (e.g., race, ethnicity, religion, gender, sexual orientation, disability, or nationality).\n3. The claim is presented in a conspiratorial context — implying a secret, coordinated, or hidden agenda by the group to cause harm."
+  },
+  {
+    "rule_id": "YT-R9",
+    "name": "Denial of violent events",
+    "objectified_rule": "Denial or minimization of a well-documented, major violent event or the victimhood of such an event.",
+    "preconditions": [
+      "The video references a specific, well-documented major violent event (e.g., mass shooting, genocide, terrorist attack, war crime) that is widely recognized in public records or historical consensus.",
+      "The video explicitly denies, downplays, trivializes, or minimizes the scale, severity, or impact of the event or the victimhood of those affected.",
+      "The denial or minimization is presented in a way that is not clearly contextualized as historical revisionism, satire, or parody — and is presented as factual or normative commentary."
+    ],
+    "raw_response": "1. The video references a specific, well-documented major violent event (e.g., mass shooting, genocide, terrorist attack, war crime) that is widely recognized in public records or historical consensus.\n2. The video explicitly denies, downplays, trivializes, or minimizes the scale, severity, or impact of the event or the victimhood of those affected.\n3. The denial or minimization is presented in a way that is not clearly contextualized as historical revisionism, satire, or parody — and is presented as factual or normative commentary."
+  }
+]

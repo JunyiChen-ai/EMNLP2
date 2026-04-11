@@ -1,0 +1,62 @@
+{
+  "platform": "Bilibili",
+  "policy_url": "https://www.bilibili.tv/marketing/protocal/communityrules_en.html",
+  "used_by": ["MHClip_ZH"],
+  "note": "MHClip_ZH is sourced from Bilibili. Annotations follow Davidson et al. (2017) 3-class taxonomy (Hateful/Offensive/Normal), which aligns closely with YouTube's definitions but adds the Offensive category.",
+  "protected_attributes": [
+    "Race",
+    "Religion",
+    "Gender",
+    "Age",
+    "Nationality",
+    "Disability",
+    "Sexual Orientation"
+  ],
+  "rules": [
+    {
+      "rule_id": "BL-R1",
+      "name": "Discriminatory content",
+      "text": "Any content that includes discriminatory content or disparages any religion, belief system, race, sexual orientation, or protected group."
+    },
+    {
+      "rule_id": "BL-R2",
+      "name": "Attacks and disparagement",
+      "text": "Attacks, disparagement, or belittlement that target a specific individual or group based on race, religion, gender, age, nationality, disability, sexual orientation, etc."
+    },
+    {
+      "rule_id": "BL-R3",
+      "name": "Verbal abuse and personal attacks",
+      "text": "Verbal abuse or personal attacks against a specific individual or group, antagonizing others and inciting hatred."
+    },
+    {
+      "rule_id": "BL-R4",
+      "name": "Hateful ideologies",
+      "text": "Promoting hateful ideologies via active discussion or display of signs, symbols, flags, slogans representing hateful organizations."
+    },
+    {
+      "rule_id": "BL-R5",
+      "name": "Mocking death and disability",
+      "text": "Content mocking death, sickness, and disability."
+    },
+    {
+      "rule_id": "BL-R6",
+      "name": "Disaster jokes",
+      "text": "Jokes about disasters and tragic social events."
+    },
+    {
+      "rule_id": "BL-R7",
+      "name": "Gender-based hate",
+      "text": "Hateful content directed toward a particular gender group, including misogynistic and misandrist content."
+    },
+    {
+      "rule_id": "BL-R8",
+      "name": "Inciting confrontation",
+      "text": "Content that maliciously provokes wars or conflicts, incites confrontations, and spreads hatred."
+    }
+  ],
+  "examples": [],
+  "exceptions": {
+    "name": "Not explicitly stated",
+    "description": "Bilibili does not publish explicit EDSA-style exceptions. Content moderation is shaped by China's Cyberspace Administration (CAC) regulatory framework, including the 'Nine Prohibitions'."
+  }
+}

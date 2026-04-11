@@ -1,0 +1,54 @@
+{
+  "platform": "BitChute",
+  "policy_url": "https://support.bitchute.com/policy/guidelines",
+  "detail_url": "https://support.bitchute.com/policy-explanations/incitement-to-hatred",
+  "used_by": ["HateMM"],
+  "note": "HateMM data is sourced from BitChute. However, HateMM annotations use YouTube's hate speech policy as the codebook, NOT BitChute's own policy. BitChute's threshold for prohibited content is significantly higher than YouTube's.",
+  "protected_attributes": [
+    "Sex",
+    "Race",
+    "Colour",
+    "Ethnic or social origin",
+    "Genetic features",
+    "Language",
+    "Religion or belief",
+    "Political opinion",
+    "National minority membership",
+    "Property",
+    "Birth",
+    "Disability",
+    "Age",
+    "Sexual orientation"
+  ],
+  "rules": [
+    {
+      "rule_id": "BC-R1",
+      "name": "Incitement to Hatred",
+      "text": "Material likely to incite hatred against a group of persons or a member of a group of persons based on protected grounds, as defined by Section 368E Subsection (1) of the UK Communications Act 2003, referencing Article 21 of the Charter of Fundamental Rights of the European Union.",
+      "threshold": "There should be a reasonable probability that the content would succeed in inciting actual action against the target, recognizing that such causation should be rather direct."
+    }
+  ],
+  "behavioral_indicators": [
+    "Derogatory, denigrating, or demonising statements",
+    "Suggestions of superiority or inferiority",
+    "Calls for detrimental action",
+    "Misuse as proof of criminality",
+    "Historical crime justification"
+  ],
+  "sensitivity_tiers": {
+    "normal": "Equivalent to BBFC '12' rating",
+    "nsfw": "Includes discriminatory language, drug use, nudity, moderate violence (BBFC '15') — allowed but age-restricted",
+    "nsfl": "Graphic content (BBFC '18')"
+  },
+  "exemptions": [
+    "Press Freedom",
+    "Political Discourse",
+    "Holding Power to Account",
+    "Satire, Parody, Humor, Comedy",
+    "Works of Fiction",
+    "Religious expression",
+    "Historical content",
+    "Educational purposes"
+  ],
+  "enforcement": "Violating content is geo-restricted (blocked in UK, EU, EEA, and associated territories) rather than globally removed."
+}

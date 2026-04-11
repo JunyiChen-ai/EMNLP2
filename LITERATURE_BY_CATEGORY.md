@@ -146,6 +146,24 @@ Papers about how to understand video content — using MLLMs, VLMs, or tradition
 - Studies hateful meme understanding and the risk of LLMs generating induced hateful content
 - paper: https://www.usenix.org/system/files/conference/usenixsecurity25/sec25cycle1-prepub-1017-ma-yihan.pdf
 
+**NEW47.** "ALARM: From Shallow Humor to Metaphor — Label-Free Harmful Meme Detection via LMM Agent Self-Improvement" — **arXiv 2025**
+- Confidence-based pseudo-labeling of "easy" memes + pairwise contrastive self-improvement of learner LMM; fully label-free; outperforms even label-driven methods on 3 datasets
+- paper: https://arxiv.org/abs/2512.21598
+- **[COMPETITOR]** Closest label-free meme method to our approach
+
+**NEW48.** "ExPO-HM: Learning to Explain-then-Detect for Hateful Meme Detection" — **ICLR 2026**
+- SFT warmup + GRPO with curriculum learning; Conditional Decision Entropy (CDE) as reward; explanation-driven detection; +15% F1 over GRPO baseline
+- paper: https://arxiv.org/abs/2510.08630
+
+**NEW49.** "LELA: Towards Training-free Multimodal Hate Localisation with Large Language Models" — **arXiv 2026**
+- Decomposes video into 5 modalities; multi-stage prompting with frozen LLM; per-frame hate scores + composition matching; training-free
+- paper: https://arxiv.org/abs/2602.09637
+- **[COMPETITOR]** Training-free SOTA on HateMM and MultiHateClip
+
+**NEW50.** "SLM-Mod: Small Language Models Surpass LLMs at Content Moderation" — **NAACL 2025**
+- Community-specific LoRA-fine-tuned SLMs (<15B) beat zero-shot LLMs by 11.5% accuracy, 25.7% recall on 150K Reddit comments
+- paper: https://arxiv.org/abs/2410.09750 | code: https://github.com/AGoyal0512/SLM-Mod
+
 ### A.3 Earlier Efforts
 
 **G2.** "Improving Hateful Meme Detection with LMM-Generated Knowledge" — **CVPR 2025 Workshops**
@@ -246,11 +264,38 @@ Papers about how to understand video content — using MLLMs, VLMs, or tradition
 - Coarse-grained normality prototypes + fine-grained decoupled contrastive visual-language alignment on CLIP features; SOTA on XD-Violence and UCF-Crime
 - paper: https://arxiv.org/abs/2511.10334
 
+**NEW51.** "AnyAnomaly: Zero-Shot Customizable Video Anomaly Detection with LVLM" — **WACV 2026**
+- User-defined anomaly text → context-aware VQA + key frame selection; no fine-tuning; SOTA on UBnormal; strong cross-dataset generalization
+- paper: https://arxiv.org/abs/2407.13221 | code: https://github.com/SkiddieAhn/Paper-AnyAnomaly
+- **[BASELINE]** Just define "hateful content" as anomaly text → zero-shot hate detection
+
+**NEW52.** "AA-CLIP: Enhancing Zero-Shot Anomaly Detection via Anomaly-Aware CLIP" — **CVPR 2025**
+- Anomaly-aware text anchors + residual adapters; patch-level alignment preserves CLIP generalization while adding anomaly discrimination
+- paper: https://arxiv.org/abs/2407.15819 | code: https://github.com/Mwxinnn/AA-CLIP
+- **[BASELINE]** Define "hateful" vs "benign" text anchors → zero-shot hateful frame detection
+
+**NEW53.** "E3M: Zero-Shot Spatio-Temporal Video Grounding with Expectation-Maximization" — **ECCV 2024 Oral**
+- Zero-shot temporal localization via EM at test time; visual modulation + textual modulation; no training videos needed
+- paper: https://arxiv.org/abs/2404.05095 | code: https://github.com/baopj/E3M
+- **[BASELINE]** Localize hateful moments in video without labels
+
 ### A.7 Earlier Efforts
 
 **N3.** "VadCLIP: Frozen CLIP for Weakly Supervised Video Anomaly Detection" — **arXiv 2024**
 - Frozen CLIP -> fine-grained temporal text-video matching -> anomaly scoring
 - paper: https://arxiv.org/abs/2308.11681 | code: https://github.com/nwpu-zxr/VadCLIP
+
+### A.9 Out-of-Context / Cross-Modal Incongruity Detection
+
+**NEW54.** "SNIFFER: Multimodal LLM for Explainable Out-of-Context Misinformation Detection" — **CVPR 2024**
+- Two-stage instruction tuning: (1) entity alignment, (2) OOC discrimination; internal checking (image-text inconsistency) + external checking (retrieved context); 88.4% ACC (+3.7% SOTA)
+- paper: https://arxiv.org/abs/2403.01879 | code: https://github.com/MischaQI/Sniffer
+- **[BASELINE]** Internal incongruity checking transfers to detecting hate via cross-modal mismatch
+
+**NEW55.** "LAMAR: Latent Multimodal Reconstruction for Misinformation Detection" — **arXiv 2025**
+- Reconstruct expected caption from image; reconstruction error = incongruity signal; trained on synthetic miscaptioned data; +7.8-10.4% on NewsCLIPpings/VERITE
+- paper: https://arxiv.org/abs/2504.06010 | code: https://github.com/stevejpapad/miscaptioned-image-reconstruction
+- **[BASELINE]** Reconstruction gap between expected vs actual text signals hateful juxtaposition
 
 ### A.8 Evidence / Claim Verification
 
@@ -843,10 +888,234 @@ Papers that use a two-stage pipeline: Stage 1 uses an MLLM/VLM to analyze multim
 
 ---
 
-**Total papers**: 129
+## Category F: Label-Free Training (MLLM Self-Training & MLLM-Guided Small-Model Training)
+
+Papers about training or adapting MLLMs/VLMs — or training smaller multimodal models guided by MLLMs — **without human labels**. Two primary threads: (F.1) MLLMs that self-train via self-rewarding, self-play, self-consistency, or self-distillation; (F.2) MLLM teachers supervising smaller student models with pseudo-labels/rationales instead of ground-truth annotations. Also includes label-free VAD / hateful / misinformation applications.
+
+---
+
+### F.1 MLLM Self-Training / Label-Free Fine-Tuning
+
+**LF1.** "MM-UPT: Unsupervised Post-Training for Multi-Modal LLM Reasoning via GRPO" — **NeurIPS 2025**
+- Replaces GRPO's reward with majority-vote self-consistency pseudo-labels over sampled responses; no ground-truth labels; improves Qwen2.5-VL on MathVista/We-Math
+- paper: https://arxiv.org/abs/2505.22453
+
+**LF2.** "Calibrated Self-Rewarding Vision Language Models (CSR)" — **NeurIPS 2024**
+- Iterative self-rewarding preference optimization with calibrated visual-token rewards; no external reward model or human preference labels
+- paper: https://papers.nips.cc/paper_files/paper/2024/file/5c20c00504e0c049ec2370d0cceaf3c4-Paper-Conference.pdf
+
+**LF3.** "STIC: Enhancing Large Vision Language Models with Self-Training on Image Comprehension" — **NeurIPS 2024**
+- LVLM self-constructs a preference set from unlabeled images (good captions vs. corrupted-image captions); DPO fine-tuning with no human/teacher labels
+- paper: https://arxiv.org/abs/2405.19716
+
+**LF4.** "Vision-Language Models Can Self-Improve Reasoning via Reflection" — **NAACL 2025**
+- Reflection-based self-improvement: VLM generates, critiques, and refines its own CoT; self-trains on filtered traces without ground truth
+- paper: https://aclanthology.org/2025.naacl-long.447.pdf
+
+**LF5.** "Realistic Test-Time Adaptation of Vision-Language Models" — **CVPR 2025**
+- Entropy / pseudo-label–based TTA for CLIP-style VLMs under realistic deployment streams; no labels used at adaptation time
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Zanella_Realistic_Test-Time_Adaptation_of_Vision-Language_Models_CVPR_2025_paper.pdf
+
+**LF6.** "Vision-Zero: Scalable VLM Self-Improvement via Strategic Gamified Self-Play" — **arXiv 2025** (under review)
+- Iterative Self-Play Policy Optimization alternates gamified self-play and RLVR; VLM improves on reasoning/chart QA with fully label-free data
+- paper: https://arxiv.org/abs/2509.25541
+
+**LF7.** "Self-Rewarding Vision-Language Model via Reasoning Decomposition" — **arXiv 2025**
+- Decomposes visual reasoning into structured steps so the VLM rewards its own perception; fully self-rewarding, no external supervision
+- paper: https://arxiv.org/abs/2508.19652
+
+**LF8.** "CoFT: Fine-tuning Pre-trained Vision-Language Models in a Human-Annotation-Free Manner" — **arXiv 2026**
+- Dual-prompt / dual-model collaborative self-training with sample-adaptive pseudo-label filtering; fully annotation-free VLM fine-tuning
+- paper: https://arxiv.org/abs/2602.04337
+
+**LFS1.** "Adapting Vision-Language Models Without Labels: A Comprehensive Survey" — **arXiv 2025** [REFERENCE]
+- Taxonomy of label-free VLM adaptation: self-training, entropy optimization, external-resource approaches
+- paper: https://arxiv.org/abs/2508.05547
+
+**LFS2.** "Self-Improvement in Multimodal Large Language Models: A Survey" — **arXiv 2025** [REFERENCE]
+- Taxonomy of self-rewarding, self-distillation, self-play, self-training techniques for MLLMs
+- paper: https://arxiv.org/abs/2510.02665
+
+### F.2 MLLM-Guided Label-Free Training of Smaller Multimodal Models
+
+**LF9.** "MLLM-as-a-Judge for Image Safety without Human Labeling" — **CVPR 2025**
+- Debiased token probabilities + cascaded CoT turn a frozen MLLM into a zero-shot safety judge; downstream safety supervision requires no human labels
+- paper: https://arxiv.org/abs/2501.00192
+
+**LF10.** "Multi-MLLM Knowledge Distillation for Out-of-Context News Detection" — **arXiv 2025**
+- Multiple teacher MLLMs generate pseudo-labels + rationales; two-stage distillation trains a small student MLLM for OOC misinformation without human labels
+- paper: https://arxiv.org/abs/2505.22517
+
+**LF11.** "CanDist: Prompt Candidates, then Distill — Teacher-Student Framework for LLM-driven Data Annotation" — **ACL 2025**
+- Teacher LLM emits candidate label sets under uncertainty; distilled into a small student, improving robustness of LLM-only pseudo-labeling
+- paper: https://aclanthology.org/2025.acl-long.139/
+
+**LF12.** "UnCo: Uncertainty-Driven Collaborative Framework of LLM and Small Model" — **EMNLP 2025**
+- Uncertainty-guided cooperation: LLM relabels only hard cases; student learns from LLM pseudo-labels without ground-truth supervision
+- paper: https://aclanthology.org/2025.emnlp-main.388.pdf
+
+**LF13.** "MI-Fuse: Label Fusion for Unsupervised Domain Adaptation with MLLM Teachers" — **arXiv 2025**
+- Fuses multiple MLLM teachers' pseudo-labels via mutual information weighting; trains student with zero target-domain labels
+- paper: https://arxiv.org/abs/2509.20706
+
+**LF14.** "LLKD: Learning with Less — Knowledge Distillation from LLMs via Unlabeled Data" — **NeurIPS 2024 Workshop**
+- LLM generates pseudo-labels on unlabeled data; confidence-weighted distillation trains small classifiers with no human annotation
+- paper: https://arxiv.org/abs/2411.08028
+
+**LF15.** "Adaptive Collaborative Labeling with MLLMs (ACL-MER)" — **IJCNLP/AACL 2025**
+- MLLM teacher zoo produces confidence-scored predictions that refine student probabilities into high-quality pseudo-labels for low-resource multimodal tasks
+- paper: https://aclanthology.org/2025.ijcnlp-long.152.pdf
+
+### F.3 Label-Free Applications: VAD / Hateful / Misinformation
+
+**LF16.** "Towards Zero-Shot Anomaly Detection and Reasoning with MLLMs" — **CVPR 2025**
+- Zero-shot MLLM-driven anomaly detector + reasoning over safety-relevant events; no target-domain labels
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Xu_Towards_Zero-Shot_Anomaly_Detection_and_Reasoning_with_Multimodal_Large_Language_CVPR_2025_paper.pdf
+
+**LF17.** "SafeWatch: Efficient Safety-Policy Following Video Guardrail Model" — **ICLR 2025**
+- Multi-MLLM propose-discuss-consensus pipeline builds SafeWatch-Bench training data (no human frame labels); compact guardrail MLLM trained on those pseudo-labels
+- paper: https://arxiv.org/abs/2412.06878
+- Also listed in E.1 under different framing; shown here for the label-free annotation pipeline
+
+**LF18.** "Fact-R1: Explainable Video Misinformation Detection with Deep Reasoning" — **arXiv 2025**
+- CoT instruction tuning + DPO + GRPO with verifiable reward on FakeVV dataset; RL-driven training avoids human veracity labels at the RL stage
+- paper: https://arxiv.org/abs/2505.16836
+
+**LF19.** "VERA: Explainable Video Anomaly Detection via Verbalized Learning of VLMs" — **CVPR 2025**
+- Learns verbalized anomaly-characterization prompts for a frozen VLM; no instruction tuning, no dense frame labels, only coarse video-level cues
+- paper: https://openaccess.thecvf.com/content/CVPR2025/papers/Ye_VERA_Explainable_Video_Anomaly_Detection_via_Verbalized_Learning_of_Vision-Language_Models_CVPR_2025_paper.pdf
+- Cross-listed in A.1; relevant here for its label-free verbalized training signal
+
+### F.3 Earlier Efforts
+
+**LF20.** "LAVAD: Harnessing LLMs for Training-free Video Anomaly Detection" — **CVPR 2024**
+- Captioning VLM + LLM reasoning over caption histories scores anomalies with no VAD-specific training
+- paper: https://openaccess.thecvf.com/content/CVPR2024/papers/Zanella_Harnessing_Large_Language_Models_for_Training-free_Video_Anomaly_Detection_CVPR_2024_paper.pdf
+- Cross-listed in A.1 earlier efforts
+
+### F.4 Label-Free VLM Adaptation (Other Domains — Transferable Baselines)
+
+**LF21.** "LaFTer: Label-Free Tuning of Zero-shot Classifier using Language and Unlabeled Images" — **NeurIPS 2024**
+- LLM-generated class descriptions as supervision; CLIP zero-shot pseudo-labels → adapter with description-guided contrastive loss; no human labels
+- paper: https://arxiv.org/abs/2305.18287 | code: https://github.com/jmiemirza/LaFTer
+- **[BASELINE]** Most directly comparable to TLB-Filter — both use VLM zero-shot signals to train a small classifier
+
+**LF22.** "SuS-X: Training-Free Name-Only Transfer of Vision-Language Models" — **ICCV 2023**
+- Constructs support set from CLIP's own feature space → nearest-neighbor calibration; training-free; SOTA on 19 datasets
+- paper: https://arxiv.org/abs/2211.16198 | code: https://github.com/vishaal27/SuS-X (105 stars)
+- **[BASELINE]** Training-free CLIP calibration — analog to token-logprob calibration
+
+**LF23.** "TPT: Test-Time Prompt Tuning for Zero-Shot Generalization" — **NeurIPS 2022**
+- Optimizes soft prompts at test time by minimizing entropy over augmented views; no training labels; + follow-up DiffTPT (NeurIPS 2023)
+- paper: https://arxiv.org/abs/2209.07511 | code: https://github.com/azshue/TPT
+- **[BASELINE]** Canonical training-free prompt adaptation
+
+**LF24.** "UPL: Unsupervised Prompt Learning for Vision-Language Models" — **arXiv 2024**
+- CLIP zero-shot → pseudo-labels → CoOp-style soft prompt training → iterate; top-K confidence filtering
+- paper: https://arxiv.org/abs/2204.03649 | code: https://github.com/tonyhuang2022/UPL
+- **[BASELINE]** Prompt-tuning analog of TLB-Filter: confidence-filtered pseudo-label self-training
+
+**LF25.** "StatA: Realistic Test-Time Adaptation of Vision-Language Models" — **CVPR 2025 Highlight**
+- Anchor-based regularization for robust TTA under variable effective classes; unsupervised transductive
+- paper: https://arxiv.org/abs/2501.13838 | code: https://github.com/MaxZanella/StatA (59 stars)
+- Cross-listed with LF5; shown here for its relevance as a label-free adaptation baseline
+
+**LF26.** "STIC: Self-Training on Image Comprehension" — **NeurIPS 2024**
+- LVLM generates preferred vs dis-preferred captions from unlabeled images → DPO fine-tuning; no human/teacher labels
+- paper: https://arxiv.org/abs/2405.19716 | code: https://github.com/yihedeng9/STIC (69 stars)
+- Cross-listed with LF3; shown here for code availability
+
+### F.5 Noisy Pseudo-Label Debiasing (Transferable from Other Domains)
+
+**LF27.** "PriDe: Large Language Models Are Not Robust Multiple Choice Selectors" — **ICLR 2024 Spotlight**
+- Decomposes LLM output into intrinsic prediction + prior distribution over answer tokens; debiases by estimating prior from small permutation test; zero additional cost
+- paper: https://arxiv.org/abs/2309.03882 | code: https://github.com/chujiezheng/LLM-MCQ-Bias
+- **[BASELINE]** Directly fixes MLLM class bias in pseudo-labels — principled replacement for heuristic class-balanced filter
+
+**LF28.** "DeFT: VLMs are Strong Noisy Label Detectors" — **NeurIPS 2024**
+- CLIP vision-text alignment with positive/negative textual prompts → detects noisy labels; essentially confident learning for VLMs
+- paper: https://arxiv.org/abs/2405.00000 | code: https://github.com/HotanLee/DeFT (17 stars)
+- **[BASELINE]** Use CLIP to detect which MLLM pseudo-labels are likely wrong
+
+**LF29.** "CLIPCleaner: Zero-Shot Clean Sample Selection for Learning with Noisy Labels" — **ACM MM 2024**
+- Zero-shot CLIP-based clean sample selection in single offline step; simpler than iterative methods
+- paper: https://arxiv.org/abs/2404.00000 | code: https://github.com/MrChenFeng/CLIPCleaner_ACMMM2024 (15 stars)
+- **[BASELINE]** One-shot filter of bad pseudo-labels via CLIP
+
+**LF30.** "NLPrompt: Noise-Label Prompt Learning" — **CVPR 2025**
+- MAE loss + prompt-based optimal transport to partition clean/noisy subsets
+- paper: https://arxiv.org/abs/2412.00000 | code: https://github.com/qunovo/NLPrompt (67 stars)
+
+**LF31.** "CroSel: Cross Selection of Confident Pseudo Labels for Partial-Label Learning" — **CVPR 2024 Oral**
+- Two networks cross-select true labels using historical prediction confidence; co-mix regularization; >90% label selection accuracy on CIFAR
+- paper: https://arxiv.org/abs/2303.10365 | code: https://github.com/jokersio-tsy/CroSel
+
+**LF32.** "DiffMatch: Towards Unbiased Learning in Semi-Supervised Semantic Segmentation" — **ICLR 2025**
+- Diffusion-based pseudo-label denoising + debiased adjustment to shift conditional reverse probability from head to tail classes
+- paper: https://arxiv.org/abs/2501.00000 | code: https://github.com/yuisuen/DiffMatch
+- **[BASELINE]** Mathematically addresses class-bias in pseudo-labels (MLLM over-predicts "not hateful")
+
+### F.6 Dynamic Rule/Concept Discovery + Efficient Sample Selection
+
+**LF33.** "RuAG: Learned-Rule-Augmented Generation for Large Language Models" — **ICLR 2025**
+- MCTS automatically distills offline data into first-order logic rules; LLM defines predicates, search explores rule space; discovered rules injected into prompts
+- paper: https://openreview.net/forum?id=RuAG | code: https://github.com/microsoft/RuAG
+- **[KEY]** Direct template for mining new hate-detection rules from data via MCTS
+
+**LF34.** "IterAlign: Iterative Constitutional Alignment of Large Language Models" — **NAACL 2024**
+- Automated cycle: red-team to find failures → oracle LLM proposes new constitutional principles → self-revise → SFT. Discovers new alignment principles each round (+13.5% harmlessness)
+- paper: https://aclanthology.org/2024.naacl-long.369/ | code: https://github.com/xiusic/IterAlign
+- **[KEY]** Closest to iterative constitution refinement from unlabeled data
+
+**LF35.** "BC-LLM: Bayesian Concept Bottleneck Models with LLM Priors" — **NeurIPS 2025**
+- Iterative Bayesian concept search: drop concept → LLM proposes replacements → annotate → accept/reject via held-out likelihood
+- paper: https://arxiv.org/abs/2410.15555 | code: https://github.com/jjfeng/bc-llm
+- Cross-listed with E16; shown here for iterative concept discovery
+
+**LF36.** "PromptAgent: Strategic Planning with Language Models Enables Expert-level Prompt Optimization" — **ICLR 2024**
+- MCTS for prompt optimization; examines classification errors → generates error-feedback → proposes refined prompts
+- paper: https://openreview.net/forum?id=PromptAgent | code: https://github.com/XinyuanWangCS/PromptAgent
+
+**LF37.** "TnT-LLM: Text Mining at Scale with Large Language Models" — **KDD 2024**
+- Two-phase: zero-shot LLM reasoning iteratively generates/refines label taxonomy from raw text (no seed labels); then LLM labels data for lightweight classifiers
+- paper: https://arxiv.org/abs/2403.12173
+
+**LF38.** "CoCoBM: Enhancing Interpretable Image Classification Through LLM Agents and Conditional Concept Bottleneck Models" — **ACL 2025**
+- LLM agent dynamically adjusts concept bank via environmental feedback (classification errors); editable concept-score matrix
+- paper: https://aclanthology.org/2025.acl-long.600/
+- Cross-listed with E17; shown here for agent-driven concept bank expansion
+
+**LF39.** "AutoQual: LLM Agent for Automated Discovery of Interpretable Features" — **EMNLP 2025 Industry**
+- Iterative loop: LLM generates feature hypotheses → operationalizes → tests against data → accumulates in persistent memory. Discovered 5 interpretable features confirmed via A/B testing
+- paper: https://aclanthology.org/2025.emnlp-industry.87/
+
+**LF40.** "SIMILAR: Submodular Information Measures Based Active Learning" — **NeurIPS 2021+**
+- Uses submodular mutual information to select data subsets similar to a target set (known failures) and diverse within themselves; operates on pre-computed embeddings
+- paper: https://arxiv.org/abs/2107.00717
+
+**LF41.** "D2 Pruning: Data Pruning via Difficulty and Discriminability" — **ICLR 2024**
+- Assigns difficulty (loss across epochs) and discriminability (margin) scores; selects hard-but-learnable samples via EL2N proxy
+- paper: https://openreview.net/forum?id=D2Pruning
+
+**LF42.** "T-MARS: Text-Masking for Efficient Data Filtering with CLIP" — **NeurIPS 2024**
+- Masks text, re-scores with CLIP vision-only; selects samples where visual-only and text scores disagree most (cross-modal dependency)
+- paper: https://arxiv.org/abs/2307.03132
+- **[KEY]** Cross-modal disagreement selection maps directly to finding hate via visual-text juxtaposition
+
+---
+
+**Total papers**: 185
+**Category A (Video Understanding)**: 56 papers across 9 sub-categories
+**Category B (Multimodal Fusion)**: 32 papers across 5 sub-categories
+**Category C (Interleaved Reasoning)**: 15 papers + 2 surveys across 7 sub-categories
+**Category D (Simple-to-Hard / Cascade)**: 16 papers across 5 sub-categories
+**Category E (MLLM→Classifier)**: 26 papers across 4 sub-categories
+**Category F (Label-Free Training)**: 32 papers + 2 surveys across 5 sub-categories
+**Cross-listed**: 20+ papers appear in multiple categories
 **Category A (Video Understanding)**: 47 papers across 8 sub-categories
 **Category B (Multimodal Fusion)**: 32 papers across 5 sub-categories
 **Category C (Interleaved Reasoning)**: 15 papers + 2 surveys across 7 sub-categories
 **Category D (Simple-to-Hard / Cascade)**: 16 papers across 5 sub-categories
 **Category E (MLLM→Classifier)**: 26 papers across 4 sub-categories
-**Cross-listed**: 16 papers appear in multiple categories
+**Category F (Label-Free Training)**: 20 papers + 2 surveys across 3 sub-categories
+**Cross-listed**: 16+ papers appear in multiple categories
