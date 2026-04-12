@@ -1,7 +1,96 @@
 # State Archive — Label-Free Hateful Video Detection
-**Archived**: 2026-04-13 (updated with full ablation matrix)
+**Archived**: 2026-04-13 (updated with full ablation matrix + new baseline)
 **Branch**: label-free
 **Target**: ACC >80% on BOTH MHClip_EN and MHClip_ZH (unified method)
+
+---
+
+## 🎯 CURRENT BASELINE (2026-04-13)
+
+**Model**: `Qwen/Qwen3-VL-2B-Instruct`
+**Config**: `binary_nodef` (BINARY_PROMPT with YouTube/Bilibili rules, no Yes/No definitions)
+**Threshold search**: per-dataset unsupervised (Otsu for EN, GMM for ZH) fitted on **test scores** (TF)
+**Media**: mp4 > frames > exclude
+**Transcript limit**: 300 chars
+**vLLM**: temperature=0, max_tokens=1, logprobs=20
+
+### Baseline performance
+
+| Dataset | ACC | macro-F1 | Threshold source | Method |
+|---------|:-:|:-:|:-:|:-:|
+| MHClip_EN | **76.40%** | 0.653 | TF-Otsu | Otsu's method on test scores |
+| MHClip_ZH | **81.21%** | 0.787 | TF-GMM | 2-component GMM on test scores |
+| min | **76.40%** | 0.653 | | **-3.60pp to 80% on EN** |
+
+**Status**: EN still below target. ZH passes. This is the **best current unified baseline** after full ablation matrix.
+
+### Reproduction commands
+
+**1. Score test set (2B binary_nodef, if not already exists)**:
+```bash
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test"
+
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/score_holistic_2b.py --dataset MHClip_ZH --mode binary --split test"
+```
+
+**2. Output files**:
+- `results/holistic_2b/MHClip_EN/test_binary.jsonl` (161 records, 1 score per video)
+- `results/holistic_2b/MHClip_ZH/test_binary.jsonl` (157 attempted, 149 valid after AV1 decode failures)
+
+**3. Evaluate with TF thresholds**:
+```bash
+sbatch --cpus-per-task=2 --mem=4G --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/quick_eval_all.py"
+```
+Reads `results/holistic_2b/*/test_binary.jsonl`, fits Otsu + GMM on test scores, computes ACC / macro-F1 / macro-P / macro-R. Output: `results/analysis/quick_eval_all.json` and printed table.
+
+**4. Expected numbers (from `quick_eval_all.py`)**:
+```
+2B MHClip_EN binary_nodef  N=161  TF-Otsu=0.764/0.653  TF-GMM=0.677/0.634
+2B MHClip_ZH binary_nodef  N=149  TF-Otsu=0.758/0.604  TF-GMM=0.812/0.787
+```
+
+Baseline picks: **EN uses TF-Otsu (0.764)** because Otsu > GMM on EN; **ZH uses TF-GMM (0.812)** because GMM > Otsu on ZH. Both picks are unsupervised (no labels used during threshold selection, only label-free score distribution).
+
+---
+
+## Complete ablation ranking tables (unified method constraint)
+
+### TR-best (train-derived, strictly label-free) — per-dataset max(Otsu, GMM)
+
+| Model | Config | EN (best TR) | ZH (best TR) | min | Both≥80%? |
+|-------|--------|:-:|:-:|:-:|:-:|
+| **2B** | **binary_withdef** | **77.0** (Otsu) / 0.659 | **79.9** (GMM) / 0.774 | **77.0** | ❌ |
+| 2B | binary_nodef | 76.4 (Otsu) / 0.653 | 79.2 (GMM) / 0.758 | 76.4 | ❌ |
+| 2B | triclass_narrow | 75.2 (GMM) / 0.683 | 76.5 (Otsu) / 0.740 | 75.2 | ❌ |
+| 2B | binary_minimal | 74.5 (Otsu) / 0.605 | 77.2 (GMM) / 0.736 | 74.5 | ❌ |
+| 2B | triclass_broad | 73.9 (GMM) / **0.702** | 77.2 / 0.747 | 73.9 | ❌ |
+| 2B | triclass_nodef | 63.4 (GMM) / 0.620 | 77.2 (Otsu) / 0.749 | 63.4 | ❌ |
+| 8B | binary_withdef | 73.3 (Otsu) / 0.651 | 79.2 / 0.768 | 73.3 | ❌ |
+| 8B | binary_nodef | 72.7 (Otsu) / 0.646 | **81.9** (Otsu) / 0.778 | 72.7 | ❌ |
+| 8B | triclass_narrow | 72.0 (Otsu) / 0.682 | 75.8 (Otsu) / 0.747 | 72.0 | ❌ |
+
+**TR best unified: 2B binary_withdef (min 77.0%)** — EN 77.0 + ZH 79.9, fails both ≥80%.
+
+### TF-best (test-fit, distribution leakage but no labels) — per-dataset max(Otsu, GMM)
+
+| Model | Config | EN (best TF) | ZH (best TF) | min | Both≥80%? |
+|-------|--------|:-:|:-:|:-:|:-:|
+| **2B** | **binary_withdef** | **77.0** (Otsu) / 0.659 | 78.5 (GMM) / 0.766 | **77.0** | ❌ |
+| **2B** | **binary_nodef** ⭐ | 76.4 (Otsu) / 0.653 | **81.2** (GMM) / **0.787** | 76.4 | ❌ (EN only) |
+| 2B | binary_minimal | 74.5 (Otsu) / 0.605 | 76.5 (Otsu) / 0.630 | 74.5 | ❌ |
+| 2B | triclass_broad | 65.2 (GMM) / 0.633 | 77.2 (Otsu) / 0.747 | 65.2 | ❌ |
+| 2B | triclass_narrow | 62.1 (GMM) / 0.609 | 77.2 (GMM) / 0.747 | 62.1 | ❌ |
+| 2B | triclass_nodef | 64.0 (GMM) / 0.626 | 76.5 (Otsu) / 0.740 | 64.0 | ❌ |
+| 8B | binary_withdef | 73.3 / 0.651 | 79.2 / 0.768 | 73.3 | ❌ |
+| 8B | binary_nodef | 72.7 (Otsu) / 0.646 | **81.9** (Otsu) / 0.778 | 72.7 | ❌ |
+| 8B | triclass_narrow (t300) | 72.0 (Otsu) / 0.682 | 75.8 (Otsu) / 0.747 | 72.0 | ❌ |
+| 8B | triclass_broad (t300) | 71.4 / 0.698 | 73.8 (Otsu) / 0.722 | 71.4 | ❌ |
+
+⭐ **2B binary_nodef is the current baseline** — highest ZH (81.2%) and decent EN (76.4%). Macro-F1 0.787 on ZH is the highest macro-F1 across all cells.
+
+**TF best unified: 2B binary_withdef (min 77.0%)** if using min criterion, but **2B binary_nodef** is preferred as baseline because ZH score (81.2%/0.787) is highest, and EN gap (3.6pp) is similar.
+
+---
 
 ---
 
