@@ -1,7 +1,94 @@
 # State Archive — Label-Free Hateful Video Detection
-**Archived**: 2026-04-12
+**Archived**: 2026-04-13 (updated with full ablation matrix)
 **Branch**: label-free
 **Target**: ACC >80% on BOTH MHClip_EN and MHClip_ZH (unified method)
+
+---
+
+## ABLATION MATRIX (2026-04-13) — Complete 2B, partial 8B
+
+Evaluated: **6 prompt configs × 2 datasets × 2 models** with 5 threshold methods each
+(Oracle / TF-Otsu / TF-GMM / TR-Otsu / TR-GMM).
+
+### Prompt configurations
+
+1. **binary_nodef** — "Based on platform rules... Does this video violate? Yes/No"
+2. **binary_withdef** — Same + "Yes: contains hate speech... No: does not..."
+3. **binary_minimal** — NO rules, NO def. Just "Is this video hateful? Yes/No"
+4. **triclass_narrow** — "Classify as: Hateful (directly targets protected group) / Offensive (borderline) / Normal"
+5. **triclass_broad** — Hateful def broadened to include humor/mockery/coded language
+6. **triclass_nodef** — "Classify as: Hateful, Offensive, or Normal" (no definitions)
+
+All use `transcript_limit=300`, mp4>frames>exclude media priority, same vLLM settings.
+
+### MHClip_EN — Full matrix (ACC / macro-F1)
+
+| Model | Config | Oracle | TF-Otsu | TF-GMM | TR-Otsu | TR-GMM |
+|-------|--------|:-:|:-:|:-:|:-:|:-:|
+| 2B | binary_nodef | 77.0/0.651 | 76.4/0.653 | 67.7/0.634 | 76.4/0.653 | 69.6/0.643 |
+| **2B** | **binary_withdef** | **77.6/0.705** | **77.0/0.659** | 75.8/0.697 | **77.0/0.659** | 71.4/0.663 |
+| 2B | binary_minimal | 75.8/0.655 | 74.5/0.605 | 72.7/0.656 | 74.5/0.605 | 72.7/0.665 |
+| 2B | triclass_narrow | 75.8/0.683 | 60.2/0.593 | 62.1/0.609 | 61.5/0.604 | 75.2/0.683 |
+| 2B | triclass_broad | 74.5/**0.707** | 58.4/0.581 | 65.2/0.633 | 58.4/0.581 | 73.9/**0.702** |
+| 2B | triclass_nodef | 74.5/0.694 | 62.7/0.618 | 64.0/0.626 | 62.7/0.618 | 63.4/0.620 |
+| 8B | binary_nodef | 74.5/0.650 | 72.7/0.646 | 70.8/0.653 | 72.7/0.646 | 70.8/0.653 |
+| 8B | binary_withdef | 73.9/0.667 | 73.3/0.651 | 73.3/0.651 | 73.3/0.651 | 72.0/0.664 |
+| 8B | triclass_narrow (t300) | 75.2/0.673 | 72.0/0.682 | 70.2/0.687 | 72.0/0.682 | 70.2/0.687 |
+| 8B | triclass_broad (t300) | 72.7/**0.716** | 71.4/0.698 | 71.4/0.698 | - | - |
+| 8B | triclass_nodef | 71.4/0.696 | 68.9/0.679 | 68.9/0.680 | - | - |
+
+**EN oracle ceiling = 77.6% (2B binary_withdef)** — no threshold method can exceed this, target 80% unreachable.
+
+### MHClip_ZH — Full matrix (ACC / macro-F1)
+
+| Model | Config | Oracle | TF-Otsu | TF-GMM | TR-Otsu | TR-GMM |
+|-------|--------|:-:|:-:|:-:|:-:|:-:|
+| 2B | binary_nodef | **81.2**/0.787 | 75.8/0.604 | **81.2**/0.787 | 77.9/0.651 | 79.2/0.758 |
+| 2B | binary_withdef | 79.2/0.770 | 75.2/0.609 | 78.5/0.766 | 75.2/0.609 | **79.9**/**0.774** |
+| 2B | binary_minimal | 78.5/0.682 | 76.5/0.630 | 75.8/0.726 | 75.8/0.615 | 77.2/0.736 |
+| 2B | triclass_narrow | 79.9/0.761 | 76.5/0.740 | 77.2/0.747 | 76.5/0.740 | 75.2/0.728 |
+| 2B | triclass_broad | 78.5/0.682 | 77.2/0.747 | 76.5/0.740 | 77.2/0.747 | 77.2/0.747 |
+| 2B | triclass_nodef | 79.9/0.725 | 76.5/0.740 | 75.8/0.747 | 77.2/0.749 | 65.8/0.657 |
+| **8B** | **binary_nodef** | **81.9**/**0.784** | **81.9**/0.778 | 77.2/0.758 | **81.9**/**0.778** | 75.8/0.743 |
+| 8B | binary_withdef | 80.5/0.776 | 79.2/0.741 | 79.2/0.768 | 79.2/0.741 | 79.2/0.768 |
+| 8B | triclass_narrow (t300) | 80.5/0.785 | 75.8/0.747 | 68.5/0.680 | 75.8/0.747 | 65.1/0.649 |
+| 8B | triclass_broad (t300) | **81.9**/0.784 | 73.8/0.722 | 66.4/0.662 | - | - |
+| 8B | triclass_nodef | 77.9/0.755 | 67.1/0.667 | 72.5/0.712 | - | - |
+
+**ZH: multiple configs pass 80% oracle**, including 8B binary_nodef 81.9% both test-fit AND train-derived Otsu.
+
+### Key findings from the ablation
+
+1. **EN oracle ceiling ≈ 77.6%** — the fundamental bottleneck. No label-free (or even oracle) method reaches 80% on EN with any tested prompt variant. The problem is discrimination (AUC), not threshold.
+
+2. **8B binary_nodef is the strongest unified candidate** — 8B ZH TR-Otsu 81.9%/0.778 passes target on ZH. But same config on 8B EN TR-Otsu is only 72.7% (fails). No single model+config achieves ≥80% on BOTH datasets under label-free evaluation.
+
+3. **2B beats 8B on EN, 8B beats 2B on ZH** — cross-lingual asymmetry. For the unified-method constraint, this rules out simple model selection.
+
+4. **Label definitions matter more for binary than triclass**:
+   - Binary: adding def (withdef) → +0.6pp ACC, +0.05 mF1 (small but positive)
+   - Triclass: no clean trend (narrow/broad/nodef all within ±1pp on oracle)
+
+5. **Platform rules contribute ~2pp on EN** — binary_minimal (no rules, no def) reaches 75.8% oracle vs binary_nodef 77.0%. Model can use pretrained hate concepts without explicit policy.
+
+6. **Triclass test-fit fails, train-derived GMM saves it**:
+   - 2B EN triclass_broad TF-Otsu: 58.4% (disaster)
+   - 2B EN triclass_broad TR-GMM: 73.9% (usable)
+   - Triclass scores are too bimodal for test-fit threshold methods. Larger train distribution finds better thresholds.
+
+7. **Distribution leakage matters for ZH**:
+   - 2B ZH binary_nodef TF-GMM: 81.2% (distribution leakage)
+   - 2B ZH binary_nodef TR-GMM: 79.2% (legitimate, but fails 80%)
+   - The 2pp gap shows real distribution shift between train and test on ZH binary scores.
+
+### Result files
+- 2B scores: `results/holistic_2b/{MHClip_EN,MHClip_ZH}/{test,train}_{binary,triclass}[_suffix].jsonl` (all 6 configs × 2 splits × 2 datasets = 24 files)
+- 8B scores: `results/holistic_8b/{MHClip_EN,MHClip_ZH}/...` (binary_nodef/withdef train+test, triclass_narrow train+test, plus existing variants)
+- Full metrics JSON: `results/analysis/quick_eval_all.json`
+- Ablation scripts: `src/quick_eval_all.py`, `src/eval_triclass_testfit.py`
+- New prompts added: `BINARY_WITH_DEF_PROMPT`, `BINARY_MINIMAL_PROMPT`, `TRICLASS_NODEF_PROMPT` in `src/score_holistic_2b.py`
+
+---
 
 ---
 

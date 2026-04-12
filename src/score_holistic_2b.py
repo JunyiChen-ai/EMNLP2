@@ -73,6 +73,29 @@ Is this video fully consistent with all of the above community guidelines?
 
 Answer "Yes" or "No"."""
 
+BINARY_WITH_DEF_PROMPT = """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
+
+Title: {title}
+Transcript: {transcript}
+
+Based on this platform's hate speech policy, the following types of content are prohibited:
+{rules}
+
+Does this video contain content that violates any of the above rules?
+- Yes: contains hate speech, slurs, dehumanization, or demeaning content targeting any group or identity
+- No: does not contain hateful or offensive content
+
+Answer "Yes" or "No"."""
+
+BINARY_MINIMAL_PROMPT = """Observe this video's visual frames, title, and transcript.
+
+Title: {title}
+Transcript: {transcript}
+
+Is this video hateful?
+
+Answer "Yes" or "No"."""
+
 TRICLASS_PROMPT = """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
 
 Title: {title}
@@ -112,6 +135,18 @@ Classify this video as one of:
 - Hateful: contains hate speech, slurs, or dehumanization targeting any group or identity
 - Offensive: contains demeaning, degrading, or disrespectful content
 - Normal: does not contain hateful or offensive content
+
+Answer with one word: Hateful, Offensive, or Normal."""
+
+TRICLASS_NODEF_PROMPT = """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
+
+Title: {title}
+Transcript: {transcript}
+
+Based on this platform's hate speech policy, the following types of content are prohibited:
+{rules}
+
+Classify this video as one of: Hateful, Offensive, or Normal.
 
 Answer with one word: Hateful, Offensive, or Normal."""
 
@@ -341,13 +376,13 @@ def main():
     parser.add_argument("--model", default="Qwen/Qwen3-VL-2B-Instruct")
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--prompt-style", default="violates",
-                        choices=["violates", "consistent"],
-                        help="Prompt framing: 'violates' (default) or 'consistent' (deflected)")
+                        choices=["violates", "consistent", "withdef", "minimal"],
+                        help="Binary prompt framing: 'violates' (default), 'consistent' (deflected), 'withdef' (with Yes/No definitions), or 'minimal' (no rules, no def, just 'Is this hateful?')")
     parser.add_argument("--transcript-limit", type=int, default=300,
                         help="Max characters of transcript to include (default: 300)")
     parser.add_argument("--triclass-style", default="narrow",
-                        choices=["narrow", "broad", "norules"],
-                        help="Triclass prompt style: 'narrow' (default), 'broad' (wider definitions), or 'norules' (no policy rules)")
+                        choices=["narrow", "broad", "norules", "nodef"],
+                        help="Triclass prompt style: 'narrow' (default), 'broad' (wider definitions), 'norules' (no policy rules), or 'nodef' (no label definitions)")
     args = parser.parse_args()
 
     # Logging
@@ -385,12 +420,18 @@ def main():
     rules_text = YOUTUBE_RULES if platform == "youtube" else BILIBILI_RULES
     if args.mode == "binary" and args.prompt_style == "consistent":
         prompt_template = DEFLECTED_BINARY_PROMPT
+    elif args.mode == "binary" and args.prompt_style == "withdef":
+        prompt_template = BINARY_WITH_DEF_PROMPT
+    elif args.mode == "binary" and args.prompt_style == "minimal":
+        prompt_template = BINARY_MINIMAL_PROMPT
     elif args.mode == "binary":
         prompt_template = BINARY_PROMPT
     elif args.triclass_style == "broad":
         prompt_template = TRICLASS_BROAD_PROMPT
     elif args.triclass_style == "norules":
         prompt_template = TRICLASS_NORULES_PROMPT
+    elif args.triclass_style == "nodef":
+        prompt_template = TRICLASS_NODEF_PROMPT
     else:
         prompt_template = TRICLASS_PROMPT
 
@@ -398,9 +439,17 @@ def main():
     model_tag = "holistic_8b" if "8B" in args.model else "holistic_2b"
     out_dir = os.path.join(PROJECT_ROOT, "results", model_tag, args.dataset)
     os.makedirs(out_dir, exist_ok=True)
-    suffix = "_deflected" if args.prompt_style == "consistent" else ""
-    if args.triclass_style in ("broad", "norules"):
-        suffix += f"_{args.triclass_style}"
+    suffix = ""
+    if args.mode == "binary":
+        if args.prompt_style == "consistent":
+            suffix += "_deflected"
+        elif args.prompt_style == "withdef":
+            suffix += "_withdef"
+        elif args.prompt_style == "minimal":
+            suffix += "_minimal"
+    else:
+        if args.triclass_style in ("broad", "norules", "nodef"):
+            suffix += f"_{args.triclass_style}"
     if args.transcript_limit != 300:
         suffix += f"_t{args.transcript_limit}"
     out_path = os.path.join(out_dir, f"{args.split}_{args.mode}{suffix}.jsonl")
