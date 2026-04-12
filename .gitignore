@@ -29,6 +29,17 @@ archive/**/results/
 
 # Slurm logs
 log/
+logs/
+slurm-*.out
+
+# Caches
+.cache/
+
+# Local paper downloads
+papers/
+
+# Local backup files
+*.backup
 
 # Generated data (large, regenerate on target machine)
 rationales/

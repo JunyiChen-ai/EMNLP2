@@ -17,8 +17,6 @@ import os
 import sys
 import time
 
-import numpy as np
-
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
 
 DATASET_CONSTITUTION = {
@@ -30,7 +28,7 @@ DATASET_CONFIGS = {
     "MHClip_EN": {
         "annotation": "datasets/MHClip_EN/annotation(new).json",
         "splits_dir": "datasets/MHClip_EN/splits",
-        "frames_dir": "datasets/MHClip_EN/frames",
+        "video_dir": "datasets/MHClip_EN/video_mp4",
         "id_field": "Video_ID",
         "title_field": "Title",
         "transcript_field": "Transcript",
@@ -38,7 +36,7 @@ DATASET_CONFIGS = {
     "MHClip_ZH": {
         "annotation": "datasets/MHClip_ZH/annotation(new).json",
         "splits_dir": "datasets/MHClip_ZH/splits",
-        "frames_dir": "datasets/MHClip_ZH/frames",
+        "video_dir": "datasets/MHClip_ZH/video",
         "id_field": "Video_ID",
         "title_field": "Title",
         "transcript_field": "Transcript",
@@ -64,7 +62,8 @@ BILIBILI_RULES = """1. Discriminatory content (violence, slurs, exclusion based 
 7. Gender-based hate speech or discrimination
 8. Inciting confrontation or conflict between groups"""
 
-HOLISTIC_PROMPT = """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
+PROMPT_VARIANTS = {
+    "clean": """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
 
 Title: {title}
 Transcript: {transcript}
@@ -72,33 +71,33 @@ Transcript: {transcript}
 Based on this platform's hate speech policy, the following types of content are prohibited:
 {rules}
 
-IMPORTANT: A video is hateful ONLY if it targets a SPECIFIC PROTECTED GROUP (defined by race, ethnicity, religion, gender, sexual orientation, disability, nationality, or age). Content that is vulgar, profane, sexually suggestive, or generally offensive but does NOT target a specific protected group is NOT hateful.
+Does this video contain content that violates any of the above rules?
 
-Does this video contain content that targets a protected group in violation of any of the above rules?
+Answer "Yes" or "No".""",
 
-Answer "Yes" or "No"."""
+    "mechanism": """You are a content moderation analyst. Observe this video's visual frames, title, and transcript.
+
+Title: {title}
+Transcript: {transcript}
+
+Based on this platform's hate speech policy, the following types of content are prohibited:
+{rules}
+
+Consider both explicit and implicit forms of hate speech, including irony, coded language, humor-based stereotyping, and contextual dog-whistles.
+
+Does this video contain content that violates any of the above rules?
+
+Answer "Yes" or "No".""",
+}
 
 
-def get_uniform_frames(frames_dir, vid_id, n_frames=4):
-    d = os.path.join(frames_dir, vid_id)
-    if not os.path.isdir(d):
-        return []
-    files = sorted(
-        (f for f in os.listdir(d) if f.endswith((".jpg", ".png", ".jpeg"))),
-        key=lambda f: int(''.join(c for c in os.path.splitext(f)[0] if c.isdigit()) or '0'),
-    )
-    if not files:
-        return []
-    if len(files) <= n_frames:
-        return [os.path.join(d, f) for f in files]
-    indices = np.linspace(0, len(files) - 1, n_frames).round().astype(int)
-    seen = set()
-    selected = []
-    for i in indices:
-        if i not in seen:
-            seen.add(i)
-            selected.append(files[i])
-    return [os.path.join(d, f) for f in selected]
+def find_video_path(video_dir, vid_id):
+    """Find video file for a given ID."""
+    for ext in (".mp4", ".webm", ".mkv"):
+        p = os.path.join(video_dir, vid_id + ext)
+        if os.path.isfile(p):
+            return p
+    return None
 
 
 def build_label_token_ids(tokenizer):
@@ -153,8 +152,9 @@ def main():
     parser.add_argument("--dataset", required=True, choices=list(DATASET_CONFIGS))
     parser.add_argument("--split", required=True, choices=["train", "valid", "test"])
     parser.add_argument("--model", default="Qwen/Qwen3-VL-8B-Instruct")
-    parser.add_argument("--n-frames", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--prompt-variant", default="clean",
+                        choices=["clean", "mechanism"])
     parser.add_argument("--project-root", default=PROJECT_ROOT)
     args = parser.parse_args()
 
@@ -168,7 +168,7 @@ def main():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
-            logging.FileHandler(os.path.join(log_dir, f"holistic_{args.dataset}_{args.split}.log")),
+            logging.FileHandler(os.path.join(log_dir, f"holistic_{args.dataset}_{args.split}_{args.prompt_variant}.log")),
             logging.StreamHandler(),
         ],
     )
@@ -185,11 +185,12 @@ def main():
     logging.info(f"Dataset={args.dataset} split={args.split} n={len(split_ids)}")
 
     rules_text = YOUTUBE_RULES if platform == "youtube" else BILIBILI_RULES
+    prompt_template = PROMPT_VARIANTS[args.prompt_variant]
 
     # Output
     out_dir = os.path.join(root, "results", "holistic", args.dataset)
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"{args.split}.jsonl")
+    out_path = os.path.join(out_dir, f"{args.split}_{args.prompt_variant}.jsonl")
 
     done_ids = set()
     if os.path.exists(out_path):
@@ -217,10 +218,8 @@ def main():
         model=args.model,
         trust_remote_code=True,
         gpu_memory_utilization=0.92,
-        max_model_len=16384,
-        limit_mm_per_prompt={"image": args.n_frames},
+        limit_mm_per_prompt={"video": 1},
         allowed_local_media_path="/data/jehc223",
-        mm_processor_kwargs={"max_pixels": 1003520},
     )
 
     tokenizer = llm.get_tokenizer()
@@ -235,57 +234,80 @@ def main():
         allowed_token_ids=list(all_yes_no_ids),
     )
 
-    frames_dir = os.path.join(root, cfg["frames_dir"])
+    video_dir = os.path.join(root, cfg["video_dir"])
     t0 = time.time()
     n_processed = 0
 
-    for idx, vid_id in enumerate(remaining):
-        sample = id2sample[vid_id]
-        title = sample.get(cfg["title_field"], "") or ""
-        transcript = sample.get(cfg["transcript_field"], "") or ""
-        frame_paths = get_uniform_frames(frames_dir, vid_id, args.n_frames)
+    for batch_start in range(0, len(remaining), args.batch_size):
+        batch_ids = remaining[batch_start:batch_start + args.batch_size]
+        batch_messages = []
+        batch_vid_ids = []
 
-        if not frame_paths:
-            logging.warning(f"  {vid_id}: no frames, skipping")
+        for vid_id in batch_ids:
+            sample = id2sample[vid_id]
+            title = sample.get(cfg["title_field"], "") or ""
+            transcript = sample.get(cfg["transcript_field"], "") or ""
+            video_path = find_video_path(video_dir, vid_id)
+
+            if not video_path:
+                logging.warning(f"  {vid_id}: no video file, skipping")
+                continue
+
+            prompt_text = prompt_template.format(
+                title=title,
+                transcript=transcript[:300],
+                rules=rules_text,
+            )
+
+            content = [
+                {"type": "video_url", "video_url": {"url": f"file://{video_path}"}},
+                {"type": "text", "text": prompt_text},
+            ]
+
+            messages = [
+                {"role": "system", "content": "You are a content moderation analyst. Answer based strictly on observable evidence."},
+                {"role": "user", "content": content},
+            ]
+            batch_messages.append(messages)
+            batch_vid_ids.append(vid_id)
+
+        if not batch_messages:
             continue
 
-        prompt_text = HOLISTIC_PROMPT.format(
-            title=title,
-            transcript=transcript[:300],
-            rules=rules_text,
-        )
-
-        content = []
-        for fp in frame_paths:
-            content.append({"type": "image_url", "image_url": {"url": f"file://{fp}"}})
-        content.append({"type": "text", "text": prompt_text})
-
-        messages = [
-            {"role": "system", "content": "You are a content moderation analyst. Answer based strictly on observable evidence."},
-            {"role": "user", "content": content},
-        ]
-
         try:
-            outputs = llm.chat(messages=[messages], sampling_params=sampling_params)
-            score = extract_yes_no_score(outputs[0], label_token_ids)
+            outputs = llm.chat(messages=batch_messages, sampling_params=sampling_params)
         except Exception as e:
-            logging.warning(f"  {vid_id}: failed: {e}")
-            score = None
-
-        record = {
-            "video_id": vid_id,
-            "score": score,
-            "n_frames": len(frame_paths),
-        }
-
-        with open(out_path, "a") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-        n_processed += 1
-        if (n_processed) % 20 == 0 or idx == len(remaining) - 1:
+            logging.error(f"  Batch failed: {e}, falling back to single")
+            for i, msgs in enumerate(batch_messages):
+                try:
+                    out_single = llm.chat(messages=[msgs], sampling_params=sampling_params)
+                    score = extract_yes_no_score(out_single[0], label_token_ids)
+                except Exception as e2:
+                    logging.error(f"  {batch_vid_ids[i]}: single failed: {e2}")
+                    score = None
+                with open(out_path, "a") as f:
+                    f.write(json.dumps({"video_id": batch_vid_ids[i], "score": score}, ensure_ascii=False) + "\n")
+                n_processed += 1
             elapsed = time.time() - t0
             rate = n_processed / elapsed if elapsed > 0 else 0
-            logging.info(f"  [{len(done_ids)+n_processed}/{len(split_ids)}] {rate:.1f} vid/s")
+            logging.info(f"  [{len(done_ids)+n_processed}/{len(split_ids)}] {rate:.1f} vid/s (fallback)")
+            continue
+
+        with open(out_path, "a") as f:
+            for i, output in enumerate(outputs):
+                score = extract_yes_no_score(output, label_token_ids)
+                record = {
+                    "video_id": batch_vid_ids[i],
+                    "score": score,
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        n_processed += len(batch_vid_ids)
+        elapsed = time.time() - t0
+        rate = n_processed / elapsed if elapsed > 0 else 0
+        logging.info(
+            f"  [{len(done_ids)+n_processed}/{len(split_ids)}] {rate:.1f} vid/s"
+        )
 
     logging.info(f"\nDone. {n_processed} scored. Output: {out_path}")
 
