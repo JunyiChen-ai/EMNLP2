@@ -28,9 +28,9 @@
 
 **1. Score test set (2B binary_nodef, if not already exists)**:
 ```bash
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test"
 
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_ZH --mode binary --split test"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_ZH --mode binary --split test"
 ```
 
 **2. Output files**:
@@ -39,7 +39,7 @@ sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/c
 
 **3. Evaluate with TF thresholds**:
 ```bash
-sbatch --cpus-per-task=2 --mem=4G --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/quick_eval_all.py"
+sbatch --cpus-per-task=2 --mem=4G --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/quick_eval_all.py"
 ```
 Reads `results/holistic_2b/*/test_binary.jsonl`, fits Otsu + GMM on test scores, computes ACC / macro-F1 / macro-P / macro-R. Output: `results/analysis/quick_eval_all.json` and printed table.
 
@@ -174,8 +174,8 @@ All use `transcript_limit=300`, mp4>frames>exclude media priority, same vLLM set
 - 2B scores: `results/holistic_2b/{MHClip_EN,MHClip_ZH}/{test,train}_{binary,triclass}[_suffix].jsonl` (all 6 configs × 2 splits × 2 datasets = 24 files)
 - 8B scores: `results/holistic_8b/{MHClip_EN,MHClip_ZH}/...` (binary_nodef/withdef train+test, triclass_narrow train+test, plus existing variants)
 - Full metrics JSON: `results/analysis/quick_eval_all.json`
-- Ablation scripts: `src/baseline/quick_eval_all.py`, `src/eval_triclass_testfit.py`
-- New prompts added: `BINARY_WITH_DEF_PROMPT`, `BINARY_MINIMAL_PROMPT`, `TRICLASS_NODEF_PROMPT` in `src/baseline/score_holistic_2b.py`
+- Ablation scripts: `src/our_method/quick_eval_all.py`, `src/eval_triclass_testfit.py`
+- New prompts added: `BINARY_WITH_DEF_PROMPT`, `BINARY_MINIMAL_PROMPT`, `TRICLASS_NODEF_PROMPT` in `src/our_method/score_holistic_2b.py`
 
 ---
 
@@ -358,7 +358,7 @@ EN full test set has 39/182 videos with missing media files (12 Normal, 7 Offens
 - `results/holistic_8b/MHClip_ZH/test_triclass*.jsonl` (multiple variants)
 
 ### Scripts modified
-- `src/baseline/score_holistic_2b.py` — Added `--transcript-limit` and `--triclass-style {narrow, broad, norules}` args
+- `src/our_method/score_holistic_2b.py` — Added `--transcript-limit` and `--triclass-style {narrow, broad, norules}` args
 
 ---
 
@@ -430,22 +430,22 @@ Two calls per video with distinct roles:
 
 ### 2B binary scoring (test)
 ```bash
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test"
 ```
 
 ### 2B triclass scoring (test)
 ```bash
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_EN --mode triclass --split test"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_EN --mode triclass --split test"
 ```
 
 ### 2B training split scoring
 ```bash
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_EN --mode binary --split train"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_EN --mode binary --split train"
 ```
 
 ### 8B binary scoring (test)
 ```bash
-sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/baseline/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test --model Qwen/Qwen3-VL-8B-Instruct"
+sbatch --gres=gpu:1 --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && conda activate SafetyContradiction && cd /data/jehc223/EMNLP2 && python src/our_method/score_holistic_2b.py --dataset MHClip_EN --mode binary --split test --model Qwen/Qwen3-VL-8B-Instruct"
 ```
 
 ### Content-free calibration
@@ -497,7 +497,7 @@ no passing method was found.**
 | v1 | Observe-then-Judge | 2-call text cascade (video Observer → text-only Judge) | 0.7391 | 0.7785 | MISS | Text-only Judge calibration drift; rank preserved but positive/negative masses shift upward, Otsu/GMM cut collapses |
 | v2 | Factored Verdict | 2-call AND-gate: P_T × P_S (target × stance, both video-grounded) | 0.7267 | 0.7785 | MISS | Multiplicative AND compresses "tall but not both-tall" positives; v2 P_S alone matches v1 EN oracle exactly |
 | v3 | Polarity-Calibrated Probes | 2-call logit-space fusion of opposite-polarity framings (violates vs fully-consistent) | 0.7764 (tie) | 0.8121 (tie) | MISS | Oracle tie only; AP1 self-binding clause triggered (prob-space average = logit-space fusion on EN); Ablation A leak on ZH (Call 2 adds no signal) |
-| v3 p_evidence | **NOT a baseline perturbation — a different prompt** | v3's re-implemented scorer, **with one sentence dropped from the user message** (see row note) | EN tf_otsu 0.7516 | ZH tf_gmm 0.7987 | — | **ROOT-CAUSE CORRECTION (2026-04-13 later session, second pass)**: v3 p_evidence is NOT "baseline re-scored via v3's wrapper". It is scored with a **different prompt**: the user message has the sentence `"You are a content moderation analyst."` **deleted** from its start (compare `src/baseline/score_holistic_2b.py:52` vs `archive/prompt_paradigm_v1_to_v6/polarity_calibration.py:83`). This was meant to de-duplicate with the system message, but 2B is prompt-sensitive enough that removing those 45 characters **shifts scores on 127/161 EN (78%) and 109/149 ZH (73%) videos, with max |Δ|=0.2151**. Score-level correlation with baseline is 0.9629 EN / 0.9796 ZH — high but far from identity. **v3's own Ablation A integrity check ("A reproduces baseline within FP tolerance") was silently violated** — the teammate did not catch it. All previously-reported "v3 p_evidence vs baseline" comparisons are comparisons between **two different prompts**, not between "baseline and a perturbation of it". The classical-method cells above (EN tf_otsu 0.7516, ZH tf_gmm 0.7987) are the real label-free numbers on this shifted-prompt score file — **all below baseline on both datasets**. The session's 0.8188 ZH claim came from an oracle sweep on this shifted-prompt file; whether that number is atom-clean or a sub-atom phantom is irrelevant because it was never "beating baseline with baseline's prompt" in the first place. |
+| v3 p_evidence | **NOT a baseline perturbation — a different prompt** | v3's re-implemented scorer, **with one sentence dropped from the user message** (see row note) | EN tf_otsu 0.7516 | ZH tf_gmm 0.7987 | — | **ROOT-CAUSE CORRECTION (2026-04-13 later session, second pass)**: v3 p_evidence is NOT "baseline re-scored via v3's wrapper". It is scored with a **different prompt**: the user message has the sentence `"You are a content moderation analyst."` **deleted** from its start (compare `src/our_method/score_holistic_2b.py:52` vs `archive/prompt_paradigm_v1_to_v6/polarity_calibration.py:83`). This was meant to de-duplicate with the system message, but 2B is prompt-sensitive enough that removing those 45 characters **shifts scores on 127/161 EN (78%) and 109/149 ZH (73%) videos, with max |Δ|=0.2151**. Score-level correlation with baseline is 0.9629 EN / 0.9796 ZH — high but far from identity. **v3's own Ablation A integrity check ("A reproduces baseline within FP tolerance") was silently violated** — the teammate did not catch it. All previously-reported "v3 p_evidence vs baseline" comparisons are comparisons between **two different prompts**, not between "baseline and a perturbation of it". The classical-method cells above (EN tf_otsu 0.7516, ZH tf_gmm 0.7987) are the real label-free numbers on this shifted-prompt score file — **all below baseline on both datasets**. The session's 0.8188 ZH claim came from an oracle sweep on this shifted-prompt file; whether that number is atom-clean or a sub-atom phantom is irrelevant because it was never "beating baseline with baseline's prompt" in the first place. |
 | v4 | Modality-Split | 2-call disjoint-support: visual-only + text-only, rank-noisy-OR fusion | 0.7640 | 0.7987 | MISS | Joint prompt already exploits modality complementarity; ~~v3 p_evidence strictly beats v4 fused on both datasets~~ (the v3 p_evidence comparison was based on the 0.8188 phantom and is no longer valid — see v3 p_evidence row correction); aggregator robustness also violated (prob_avg = noisy-OR) |
 | v5 | Per-Rule Disjunction Readout | 1-call constrained decode of K per-rule "0 0 0 0 ..." binary string, max-pool | 0.7205 | 0.7651 | MISS | **Per-rule variance 8.87e-5 / 9.53e-5, 100× below the 0.01 threshold.** Rule 1 holds 10× the mass of rules 2-K identically on EN and ZH (despite completely different constitutions). The "K-way disjunction" signal is actually a constrained-decode position-1 bias, not rule-specific reasoning. Null story 3 confirmed by the data. |
 | v6 | Coarse Axes Prompt | 1-call input-side manipulation: replace 9/8-rule list with 2-axis (target × hostility) statement; length-matched non-taxonomic control as AP2 defense | running at shutdown | running at shutdown | — | Pipeline not yet completed at director-commanded shutdown. Waves 1-3 done; wave 4 (train control) running as 8211/8212. Runner script is set to complete waves 4 and 5 (eval) autonomously. Final report at `results/prompt_paradigm/report_v6.json` when pipeline exits. |
@@ -519,7 +519,7 @@ no passing method was found.**
    of any kind because **it was never scored on the baseline prompt**. The v3 Call 1
    scorer (`archive/prompt_paradigm_v1_to_v6/polarity_calibration.py:83`) uses a user message that has
    `"You are a content moderation analyst."` deleted from the beginning (the frozen
-   `BINARY_PROMPT` in `src/baseline/score_holistic_2b.py:52` starts with that sentence; v3 dropped
+   `BINARY_PROMPT` in `src/our_method/score_holistic_2b.py:52` starts with that sentence; v3 dropped
    it). 2B is prompt-sensitive enough that this 45-character deletion **shifts 78% of
    EN test scores and 73% of ZH scores**, with max single-video drift 0.2151 and
    baseline-vs-p_evidence correlation 0.963 EN / 0.980 ZH. v3's own Ablation A integrity
@@ -747,7 +747,7 @@ weaker than stated.
   Otsu criterion value, MET J(t), Kapur/Li-Lee/Yen entropies.
 - **Datasets**: MHClip_EN (n=161), MHClip_ZH (n=149), HateMM (n=215, newly scored this
   session via 2B binary_nodef + YouTube rules, job 8229). HateMM required three additive
-  edits to `src/baseline/score_holistic_2b.py` (CONSTITUTION_MAP entry, dataset-aware label collapse,
+  edits to `src/our_method/score_holistic_2b.py` (CONSTITUTION_MAP entry, dataset-aware label collapse,
   argparse choice).
 - **Passing rule**: criterion argmax must equal labeled-best method on all 3 datasets.
 
@@ -849,7 +849,7 @@ regression point.
 - `results/analysis/probe_selector_scanfold.json` — full result dict
 - `results/holistic_2b/HateMM/test_binary.jsonl` — new HateMM baseline (215 videos)
 - `docs/experiments/selector_scanfold_notes.md` — pre-registration + results + verdict
-- `src/baseline/score_holistic_2b.py` — 3 additive edits to support HateMM
+- `src/our_method/score_holistic_2b.py` — 3 additive edits to support HateMM
 - `logs/probe_scanfold_v2.out` — final 3-dataset probe stdout
 - `logs/score_hatemm_test.out` — HateMM scoring log
 
@@ -975,9 +975,9 @@ by a wholesale archival of all non-baseline experimental code into `archive/`.
    to `.prerepro_20260413` so the scoring script's resume logic could not
    short-circuit the run.
 2. **Re-score** on 2 GPUs in parallel (user-authorized for this run):
-   - Job 8251: `python src/baseline/score_holistic_2b.py --dataset MHClip_EN --split test --mode binary` (defaults for everything else)
+   - Job 8251: `python src/our_method/score_holistic_2b.py --dataset MHClip_EN --split test --mode binary` (defaults for everything else)
    - Job 8252: same for ZH
-3. **Re-evaluate** with `python src/baseline/quick_eval_all.py` (job 8254).
+3. **Re-evaluate** with `python src/our_method/quick_eval_all.py` (job 8254).
 4. **Per-video diff** between new and backup score files for both datasets.
 
 ### Reproduction result
@@ -1052,9 +1052,9 @@ moved out of `src/` into `archive/`** with iteration-aligned subfolders:
 Total: 205 Python files moved. `src/` now contains exactly:
 
 ```
-src/baseline/data_utils.py
-src/baseline/quick_eval_all.py
-src/baseline/score_holistic_2b.py
+src/our_method/data_utils.py
+src/our_method/quick_eval_all.py
+src/our_method/score_holistic_2b.py
 ```
 
 Nothing else. Anything in `archive/` is **not runnable in place** (the import
@@ -1077,7 +1077,7 @@ graph relies on sibling `data_utils.py` and `quick_eval_all.py`); the
 ### Motivation
 
 **Our method** is the holistic-score pipeline in
-`src/baseline/score_holistic_2b.py` (2B `binary_nodef` + TF-Otsu on EN /
+`src/our_method/score_holistic_2b.py` (2B `binary_nodef` + TF-Otsu on EN /
 TF-GMM on ZH / `li_lee` on HateMM). This session adds two external
 *comparison baselines* evaluated on the same Qwen3-VL-2B-Instruct backbone
 and the same `test_clean.csv` splits:
@@ -1107,9 +1107,9 @@ They fail on *every* pipeline that feeds mp4 → vLLM — our method, naive
 `BV1Gw411E7i2, BV1Qx411V7tT, BV16N4y1q7WU, BV1nJ4m1p7BG, BV1KK411P7uJ,
 BV1zD4y1Y7ec, BV1du411g7tk, BV1bA41137we`. Our method's evaluator
 silently dropped them (score=None filter in
-`src/baseline/quick_eval_all.py:101`), so our method's reported ZH
+`src/our_method/quick_eval_all.py:101`), so our method's reported ZH
 0.8121 has always been on n=149. To make naive/MARS apples-to-apples, we
-added `SKIP_VIDEOS` to `src/baseline/data_utils.py`: `get_media_path`
+added `SKIP_VIDEOS` to `src/our_method/data_utils.py`: `get_media_path`
 returns `None` for listed IDs, so every scoring script skips them at
 the top of the loop. `eval_generative_predictions.py` also honors
 `SKIP_VIDEOS` at eval time for consistency. **All ZH numbers below are
@@ -1198,7 +1198,7 @@ column for the paper.
 
 ### Artifacts
 
-- `src/baseline/data_utils.py` — `SKIP_VIDEOS` set added (8 broken ZH mp4s)
+- `src/our_method/data_utils.py` — `SKIP_VIDEOS` set added (8 broken ZH mp4s)
 - `src/naive_baseline/score_naive_2b.py` — naive scorer
 - `src/naive_baseline/eval_generative_predictions.py` — shared eval helper
   (honors `SKIP_VIDEOS`)

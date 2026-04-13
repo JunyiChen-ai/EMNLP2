@@ -6,7 +6,7 @@
 (8 broken mp4s skipped), HateMM 215.
 
 Two comparison baselines added alongside **our method**
-(`src/baseline/score_holistic_2b.py` — 2B binary_nodef + TF-Otsu/GMM/li_lee)
+(`src/our_method/score_holistic_2b.py` — 2B binary_nodef + TF-Otsu/GMM/li_lee)
 to give the final paper an external comparison column under identical
 backbone + splits. "Baseline" in this document refers to the two *external*
 reference points; our own pipeline is called **our method** throughout.
@@ -18,7 +18,7 @@ the size check but fail vLLM's Qwen3-VL video decoder with `"Expected
 reading N frames, but only loaded 0 frames from video."` They also failed
 in the naive 2B run (empty-string responses) and in our method (dropped by
 `quick_eval_all.py` because score=None). All three methods fail on the
-same 8 IDs. We added `SKIP_VIDEOS` to `src/baseline/data_utils.py` so
+same 8 IDs. We added `SKIP_VIDEOS` to `src/our_method/data_utils.py` so
 `get_media_path` returns `None` for them and every scoring script
 skips-at-top. `eval_generative_predictions.py` also honors `SKIP_VIDEOS`
 so eval-time counts line up. Our method's ZH baseline was always 0.8121
@@ -254,7 +254,7 @@ ACC 0.6335 / mF1 0.5978 — the fallback parser recovered ~2.5pp ACC on EN.
 
 ### Artifacts
 
-- `src/baseline/data_utils.py` — `SKIP_VIDEOS` set (8 broken ZH mp4s)
+- `src/our_method/data_utils.py` — `SKIP_VIDEOS` set (8 broken ZH mp4s)
 - `src/naive_baseline/score_naive_2b.py`, `eval_generative_predictions.py`
 - `src/mars_repro/reproduce_mars_2b.py`
 - `third_party/MARS/` at commit `72e1618` (gitignored)

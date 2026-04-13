@@ -22,9 +22,9 @@ import json
 import os
 import sys
 
-# Import data_utils from sibling src/baseline/
-_BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "baseline")
-sys.path.insert(0, _BASELINE)
+# Import data_utils from sibling src/our_method/
+_OUR_METHOD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "our_method")
+sys.path.insert(0, _OUR_METHOD)
 from data_utils import load_annotations, SKIP_VIDEOS  # noqa: E402
 
 ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM"]

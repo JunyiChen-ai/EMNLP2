@@ -27,9 +27,9 @@ import time
 
 import numpy as np
 
-# Import baseline data_utils from sibling src/baseline/
-_BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "baseline")
-sys.path.insert(0, _BASELINE)
+# Import data_utils from sibling src/our_method/
+_OUR_METHOD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "our_method")
+sys.path.insert(0, _OUR_METHOD)
 from data_utils import DATASET_ROOTS, get_media_path, load_annotations  # noqa: E402
 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
