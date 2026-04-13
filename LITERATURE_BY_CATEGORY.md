@@ -1119,3 +1119,189 @@ Papers about training or adapting MLLMs/VLMs — or training smaller multimodal 
 **Category E (MLLM→Classifier)**: 26 papers across 4 sub-categories
 **Category F (Label-Free Training)**: 20 papers + 2 surveys across 3 sub-categories
 **Cross-listed**: 16+ papers appear in multiple categories
+
+---
+
+## Category G: Score Distribution Calibration & Threshold-Robust Label-Free Classification
+
+**Date added**: 2026-04-13
+**Why this category**: After 16 prompt variants × 2 model sizes (Qwen3-VL 2B, 8B), the empirical bottleneck on MultiHateClip EN is *not* the unsupervised threshold method (Otsu/GMM gap to oracle ≈ 0.6 pp on the best variant), but the **oracle ACC ceiling itself** (~77.6% across all 16 prompts, target 80%). Our diagnostic showed that AUC is nearly prompt-invariant (1.2–6.4 pp spread) while Otsu ACC varies 8–21 pp — i.e., prompts change the *geometric shape* of the score distribution, not the underlying ranking. To break the oracle ceiling we need methods that either (a) **change the model's ranking** (non-monotone score transforms, test-time adaptation, multi-view fusion with distinct roles), or (b) **expose the same ranking through a different score channel** (transcript-only, vision-only, observe-then-judge cascades). Pure monotone calibration (BC, OTTER, PriDe, temperature scaling) cannot raise the oracle ceiling; it only closes the Otsu→oracle gap, which is already small. This category catalogues both kinds of methods, marking which group each paper belongs to.
+
+**Group annotation in entries below**:
+- **[CEILING-MOVING]**: changes ranking → can raise oracle ACC
+- **[GAP-CLOSING]**: monotone transform → only closes LF→oracle gap, ranking-preserving
+- **[DIAGNOSTIC]**: paper-grade story / mechanism, no direct algorithm to import
+- **[ARCH-INSPIRATION]**: supervised paper whose architecture/idea transfers, not the loss
+
+---
+
+### G.1 Contextual / Contrastive Calibration of Zero-Shot Scores (lineage from Zhao 2021, Holtzman 2021)
+
+**G1. Batch Calibration (BC)** — Zhou et al., **ICLR 2024**
+- arXiv: https://arxiv.org/abs/2309.17249 | OpenReview: https://openreview.net/forum?id=L3FHMoKZcS
+- Estimates calibration shift as the *expectation of the LLM's output distribution over the test batch itself*, then subtracts in log-space. No labels, no content-free probes. Online running-mean variant exists.
+- **[GAP-CLOSING]** Cleanest tool for "different prompts → different geometry": BC re-centers each prompt's score distribution toward a uniform prior. Expected to align distribution shapes across prompts, which is a precondition for principled fusion downstream. **Cannot move oracle by itself** (monotone in posterior space); use as a diagnostic ablation: if BC doesn't change ACC, the bottleneck is confirmed not to be calibration.
+
+**G2. Prompt-Based Bias Calibration (UniBias / null-input probing)** — Li et al., **EMNLP 2024 Findings**
+- arXiv: https://arxiv.org/abs/2402.10353
+- Uses K diverse auto-generated *null-meaning inputs* (random strings, "N/A", meaningless questions) to probe the LM's answer-token bias, then subtracts. Multi-null is more robust than Zhao 2021's single "N/A" probe.
+- **[GAP-CLOSING]** Probes the squashing direction explicitly. K extra calls is on the edge of anti-pattern 1; defensible only if each null is a structurally distinct probe.
+
+**G3. Task Calibration** — Liu et al., **ICLR 2025**
+- OpenReview: https://openreview.net/forum?id=8LZ1D1yqeg
+- Reframes calibration as MI maximization between input and output. Uses a "task-removed" baseline (instruction stripped) for PMI-style correction. Generalizes Holtzman 2021 DCPMI.
+- **[GAP-CLOSING]** Works in logit space, reshapes distribution. Needs 1 extra forward per class, but the denominator can be shared across samples → near-zero per-sample overhead.
+
+**G4. Normalized Contextual Calibration (NCC) / Label Length Bias** — 2025
+- arXiv: https://arxiv.org/html/2511.14385
+- Multi-token labels ("Hateful" vs "Not hateful") create token-normalization bias in Zhao-style calibration. NCC fixes by normalizing at the *full-label* level.
+- **[GAP-CLOSING]** Drop-in replacement for existing calibration math. Smaller gain when scoring single answer tokens (our pipeline does this).
+
+**G5. PriDe (LLMs Are Not Robust MCQ Selectors)** — Zheng et al., **ICLR 2024 Spotlight**
+- arXiv: https://arxiv.org/abs/2309.03882 | already in `LITERATURE_BY_CATEGORY.md` as **LF27**
+- Decomposes observed answer distribution into intrinsic (content) prediction + answer-token prior. Estimates prior from a subset permutation test, then subtracts from all samples in log-space.
+- **[GAP-CLOSING]** Closed-form prompt-dependent prior removal. Originally MCQ; for binary Yes/No, permute Yes/No order to surface positional bias.
+
+---
+
+### G.2 Optimal-Transport / Label-Prior Post-Hoc Score Transforms
+
+**G6. OTTER: Effortless Label Distribution Adaptation of Zero-Shot Models** — Shin, Zhao et al., **NeurIPS 2024**
+- arXiv: https://arxiv.org/abs/2404.08461 | already referenced in `project_label_free_pipeline.md`
+- Solves entropy-regularized optimal transport over batch softmax outputs to make class marginals match a target prior. No labels; only needs the prior over P(class).
+- **[GAP-CLOSING]** Strict monotone transform → preserves ranking → does NOT raise oracle ACC. Best used as the *terminal step* after a ranking-changing intervention (e.g., score fusion). Class prior for hateful-video splits is publicly known or estimatable.
+
+---
+
+### G.3 Test-Time Adaptation for VLMs (transductive, can change ranking)
+
+**G7. StatA: Realistic Test-Time Adaptation of VLMs** — Zanella et al., **CVPR 2025 Highlight**
+- arXiv: https://arxiv.org/abs/2501.13838
+- Anchor-based transductive regularizer that handles non-i.i.d. test batches and unknown effective class count. Pulls adapted scores toward pre-adaptation statistics.
+- **[CEILING-MOVING]** Transductive → not monotone → CAN move ranking and oracle ACC. Robust under class imbalance and small N (our 161-video EN test fits). Designed for CLIP single-vector logits; adapting to MLLM answer-token logits is the engineering challenge.
+
+**G8. TDA: Efficient Test-Time Adaptation of VLMs** — Karmanov et al., **CVPR 2024**
+- arXiv: https://arxiv.org/abs/2403.18293
+- Two tiny KV caches at test time: positive cache (high-confidence samples) and negative cache (class-absence signals). Adapts via cache retrieval, no backprop. 16 min vs 12 hr for TPT.
+- **[CEILING-MOVING]** Negative cache addresses RLHF squashing — when "hateful" logit is squashed, the negative cache learns from confident-non-hateful samples and uses them to push ambiguous ones apart. Transductive; ranking-changing.
+
+**G9. ZERO: Frustratingly Easy Test-Time Adaptation** — Farina et al., **NeurIPS 2024**
+- arXiv: https://arxiv.org/abs/2405.18330
+- N augmentations → keep top-M most confident → marginalize after softmax temperature → 0. Marginal entropy minimization without backprop.
+- **[CEILING-MOVING]** Single-shot entropy sharpening; can convert squashed unimodal scores into bimodal-like via temperature → 0. For our setting, "augmentations" must be reframed as named roles (vision-only/audio-only/transcript-only views) to comply with anti-pattern 1.
+
+**G10. O-TPT: Orthogonality Constraints for Test-Time Prompt Tuning** — Sharifdeen et al., **CVPR 2025**
+- Discovered that vanilla TPT improves accuracy but *miscalibrates* probabilities. Adds orthogonality constraint on text features across classes, jointly fixing calibration and accuracy.
+- **[CEILING-MOVING + GAP-CLOSING]** Speaks directly to our "improving AUC misshapes the score distribution" phenomenon. Requires soft-prompt tuning (non-trivial on frozen Qwen3-VL with token-only output); use as inspiration if not direct drop-in.
+
+---
+
+### G.4 Label-Free Prompt Fusion (principled, not voting)
+
+**G11. CAPE: Calibrating LMs via Augmented Prompt Ensembles** — Jiang et al., **ICML 2024 workshop**
+- OpenReview: https://openreview.net/pdf?id=L0dc4wqbNs
+- Generates paraphrased prompts, calibrates each against its own null-prompt baseline, then combines via Bayesian average (not raw vote). Unsupervised.
+- **[CEILING-MOVING]** Frames our "polarity-flipped prompts" as calibrated multi-prompt fusion, not voting. Each prompt has a *named role* (positive vs negative framing); fusion is a single closed-form calibration. CLAUDE.md-compatible if K is small (2–3) and each role is justified.
+
+**G12. Flip-Flop Consistency** — Kim et al., **2025**
+- arXiv: https://arxiv.org/abs/2510.14242
+- Consensus Cross-Entropy: majority vote across prompt perturbations forms a hard pseudo-label; representation alignment loss pulls minority predictions toward consensus. The mechanism: "flips under semantic-equivalent rewrites = sample is near boundary".
+- **[CEILING-MOVING]** Mechanism is "boundary detection via flip-rate", not "vote more to reduce variance". Originally a training objective; needs adaptation to test-time score transform.
+
+**G13. BayesPE: Bayesian Prompt Ensembles** — Tonolini et al., **ACL 2024 Findings**
+- aclanthology: https://aclanthology.org/2024.findings-acl.728/
+- Treats ensemble weights over semantically-equivalent prompts as a posterior estimated via VI. Yields calibrated uncertainty.
+- **[GAP-CLOSING]** Original variant uses a small labeled validation set → violates label-free constraint. Useful only if the likelihood is replaced by an unsupervised surrogate (BC, Gscore, dip test).
+
+---
+
+### G.5 Score-Distribution-Aware Label-Free Thresholding
+
+**G14. Gscore: Unsupervised Evaluation for OOD Detection** — Pattern Recognition 2025
+- https://www.sciencedirect.com/science/article/abs/pii/S0031320324009634
+- Fully unsupervised indicator that quantifies how well a score distribution matches the expected bimodal shape of a well-separated classifier. Strong, near-linear correlation with true OOD-detection AUROC across 200 datasets.
+- **[CEILING-MOVING (as selector)]** The closest published proxy for "label-free quality of a score distribution". Use as the *objective* to compare candidate prompts/calibration variants without labels — directly answers our meta-selector question (Otsu vs GMM, BC vs no-BC, prompt A vs prompt B).
+
+---
+
+### G.6 RLHF-Induced Calibration Drift / Safety Asymmetry (diagnostic anchors)
+
+**G15. Taming Overconfidence in LLMs: Reward Calibration in RLHF** — Xie et al., **ICLR 2025**
+- arXiv: https://arxiv.org/abs/2410.09724
+- Diagnoses that PPO reward models *systematically prefer high-confidence tokens*; proposes PPO-M / PPO-C variants that calibrate the reward.
+- **[DIAGNOSTIC]** Directly explains our 8B-vs-2B safety asymmetry (memory: `project_8b_safety_asymmetry.md`). 8B is more heavily RLHF'd → more squashed on borderline content. The fix is training-side and unusable label-free, but the diagnosis transfers and licenses an *inference-side* counter: the squashing is *systematic*, can be estimated from unlabeled stats.
+
+**G16. Understanding and Mitigating Overrefusal — Safety Decision Boundary Warning** — **EMNLP 2025**
+- arXiv: https://arxiv.org/abs/2505.18325 | aclanthology: https://aclanthology.org/2025.emnlp-main.1065.pdf
+- Visualizes LLM safety decision boundary; shows overrefusal happens when prompts sit *near* the boundary, where model collapses to a default refuse/hedge mode. Proposes boundary-aware probing.
+- **[CEILING-MOVING via diagnosis]** Critical claim: near-boundary samples get a *qualitatively different* response mode, not just softer confidence. If true, our RLHF-squashed distribution is **not monotone compression but a mixture of (boundary mode, non-boundary mode)**. A label-free detector for "boundary mode triggered" would let us route differently per mode → a non-monotone intervention that *changes ranking*. Adapting their text-probing to video-LLM token logits is open research.
+
+---
+
+### G.7 Hateful Video / Multimodal Hate — Label-Free or Diagnostic
+
+**G17. LELA: Training-Free Multimodal Hate Localisation with LLMs** — **arXiv 2026**
+- arXiv: https://arxiv.org/abs/2602.09637 | already in `LITERATURE_BY_CATEGORY.md` as **NEW49**
+- Decomposes video into 5 modality streams; multi-stage prompting with frozen LLM produces per-frame hate scores; aligns via composition matching. Training-free SOTA on HateMM and MultiHateClip.
+- **[CEILING-MOVING]** Per-modality score → composition match is exactly the "multiple narrow distinct-role scores instead of one squashed global P(hate)". Multi-call but each call has a defensible role (modality stream). Direct competitor to our setting.
+
+**G18. Training-Free and Interpretable Hateful Video Detection via Multi-Stage Adversarial Reasoning** — **arXiv 2026**
+- arXiv: https://arxiv.org/html/2601.15115v1
+- Four-stage VLM inference that explicitly enumerates competing hypotheses (hate vs anti-hate) before deciding. Training-free.
+- **[CEILING-MOVING]** Adversarial framing — explicitly score the anti-hate hypothesis — is a way to break RLHF score-squashing because the *contrast* between hate and anti-hate logits is less prompt-sensitive than P(hate) alone. External validation of our "polarity flip" idea.
+
+**G19. ALARM: Label-Free Harmful Meme Detection via LMM Agent Self-Improvement** — **arXiv 2025**
+- arXiv: https://arxiv.org/abs/2512.21598 | already in `LITERATURE_BY_CATEGORY.md` as **NEW47** (marked COMPETITOR)
+- Pseudo-labels easy memes via LMM confidence quantile, then pairwise contrastive self-improvement. Beats some label-driven methods on three meme datasets.
+- **[ARCH-INSPIRATION]** Closest published competitor in framing. Confidence-quantile filter for splitting easy/hard is exactly distribution-reshaping. Self-training is borderline (allowed only on the target benchmark's own unlabeled split, anti-pattern 3).
+
+**G20. MM-HSD: Multi-Modal Hate Speech Detection in Videos** — Céspedes-Sarrias et al., **ACM MM 2025**
+- arXiv: https://arxiv.org/abs/2508.20546 | code: https://github.com/idiap/mm-hsd
+- Cross-modal attention with **on-screen text as query** against audio/video/transcript keys. Sweeps query/key configurations. SOTA on HateMM (M-F1 0.874).
+- **[ARCH-INSPIRATION]** Empirical finding that "on-screen text is the right anchor for hate" is load-bearing for any cross-modal design. Their loss is supervised; the architectural finding transfers. Suggests we should split MLLM scores by modality role.
+
+**G21. Enhanced Multimodal Hate Video Detection via Channel-wise Cross-Modal Interaction** — **arXiv 2025**
+- arXiv: https://arxiv.org/pdf/2505.12051
+- Argues *modality dominance* (one modality drowning out others) is the main failure mode in hate video fusion; proposes channel-wise gating to balance.
+- **[ARCH-INSPIRATION]** Diagnosis matches ours exactly (MLLM defaults to visual-only, ignores transcript cues for coded hate). Only the *rebalancing prior* transfers; their loss is supervised.
+
+**G22. Inference Calibration of VLMs for Zero-Shot and Few-Shot Learning** — **Pattern Recognition Letters 2025**
+- https://www.sciencedirect.com/science/article/pii/S0167865525000959
+- Post-hoc temperature/prior correction for VLM logits in zero-shot deployment. Single learned temperature generalizes across datasets.
+- **[GAP-CLOSING]** Temperature scaling on per-prompt logits unlocks downstream LF thresholders that assume well-scaled scores. AUC-preserving → does not raise oracle ceiling. Use as ablation baseline.
+
+**G23. Enabling Calibration in Zero-Shot Inference of Large VLMs** — arXiv 2023
+- arXiv: https://arxiv.org/abs/2303.12748
+- CLIP zero-shot is systematically miscalibrated; per-prompt temperature fit via proxy objectives without labels.
+- **[GAP-CLOSING]** Same as G22; ablation baseline. Use to prove "standard fix doesn't move ceiling" → strengthens the bottleneck-is-distribution claim.
+
+---
+
+### G.8 Implicit Hate / Cross-Modal Disagreement (raises ranking via new score channel)
+
+**G24. Leveraging LLMs for Context-Aware Implicit Textual and Multimodal Hate Speech Detection** — **arXiv 2025**
+- arXiv: https://arxiv.org/html/2510.15685
+- Augments input with LLM-generated explanatory context (target group identification, historical connotation, dogwhistle reasoning) before classification. Improves implicit-hate F1 without degrading explicit.
+- **[CEILING-MOVING]** Single cleanest story for *why* our MLLM ceiling is low on EN: implicit hate needs world knowledge the MLLM has but does not invoke from a surface prompt. A single-call fix ("first identify the target group, then judge") exploits Qwen-VL pretrained knowledge, stays label-free, and complies with anti-pattern 1 (observe vs judge are distinct named roles).
+
+**G25. ImpliHateVid: Implicit Hate Speech Detection in Videos** — **ACL 2025**
+- aclanthology: https://aclanthology.org/2025.acl-long.842/ | already in `LITERATURE_BY_CATEGORY.md` as **K3**
+- Two-stage contrastive learning with auxiliary sentiment/emotion/caption features for implicit hate in videos. Introduces ImpliHateVid benchmark.
+- **[ARCH-INSPIRATION]** Benchmark-defining; auxiliary affective features as evidence that hate is conveyed via *pragmatic inversion* (happy tone + slur = hate). Label-free version: ask MLLM separately for (sentiment, target-group, caption) and fuse — distinct roles.
+
+---
+
+### Bottom-line routing for Category G
+
+To raise the EN oracle ceiling from 77.6% to 80%+:
+- **NOT helpful by themselves**: G1 BC, G3 Task Cal, G4 NCC, G5 PriDe, G6 OTTER, G22 Inference Cal, G23 CLIP Cal — all monotone, only close LF gap (already 0.6 pp on best variant)
+- **Can move ranking**: G7 StatA, G8 TDA, G9 ZERO, G10 O-TPT, G11 CAPE, G12 Flip-Flop, G14 Gscore-as-selector, G16 Overrefusal-boundary-routing, G17 LELA, G18 Adversarial Reasoning, G24 Context-aware implicit hate
+- **Diagnostic story anchors**: G15 Taming Overconfidence, G16 Overrefusal Boundary
+- **Architectural inspiration only (supervised)**: G19 ALARM, G20 MM-HSD, G21 Channel-wise, G25 ImpliHateVid
+
+A minimal label-free pipeline grounded in this category, compliant with CLAUDE.md anti-patterns:
+1. **[G24 / G18 inspired]** Two MLLM calls per video with structurally distinct roles (e.g., observe-target-group → judge-hate), or three modality-restricted views (vision-only / transcript-only / fused). Each call is a *named probe*, not an i.i.d. sample.
+2. **[G6 OTTER + G14 Gscore]** Score-fuse the K calls in score space; apply OTTER as the terminal monotone re-projection to a known 0/1 prior; Gscore picks the best fusion among candidate combinations (label-free selector).
+3. **[G16 Overrefusal-boundary]** Optionally: detect "boundary mode triggered" samples via flip-rate or entropy spike, route them through a different probe.
+
+---

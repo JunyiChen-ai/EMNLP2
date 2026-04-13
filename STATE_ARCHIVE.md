@@ -467,3 +467,221 @@ sbatch --wrap "source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh && co
 - vLLM params: temperature=0, max_tokens=1, logprobs=20
 - Media priority: mp4 > frames > exclude
 - Label mapping: Hateful+Offensive → 1, Normal → 0
+
+---
+
+# Team session 2026-04-13 — `baseline-plus-2026-04-13`
+
+## Session scope
+Director-led team with two parallel research tracks attacking the frozen 2B binary_nodef baseline
+(EN 76.40% / ZH 81.21%) under strict label-free rules. Team ran for ~13 hours of wall clock,
+across 6 prompt_paradigm iterations and ~120 meta_selector pilots. **Final baseline is unchanged;
+no passing method was found.**
+
+## Team structure
+- **prompt-paradigm (GPU track)** — 2-GPU budget, Gate 1 proposal-approval loop, front-half
+  (scoring/prompting) manipulation. Original 2-call budget relaxed; later narrowed to 1-call-only
+  after v1-v4 exhausted the 2-call family.
+- **meta-selector (CPU track)** — 0-GPU, autonomous mode after v3 (initial proposal-gate loop
+  removed to allow faster iteration), back-half (selector / threshold / fusion) over the four
+  frozen baseline score files only.
+- **Director** — verification-only. Rule-compliance review at each Gate, no improvement
+  suggestions. Enforced standing rule: "no target, no stop" — teammates cannot close their track
+  without strict-beat on both datasets. Director was the only approver of proposal → code
+  transitions on the GPU track.
+
+## prompt-paradigm — 6 structurally distinct mechanisms, all falsified
+
+| v | Name | Mechanism class | EN oracle | ZH oracle | Verdict | Failure mode |
+|:-:|---|---|:-:|:-:|:-:|---|
+| v1 | Observe-then-Judge | 2-call text cascade (video Observer → text-only Judge) | 0.7391 | 0.7785 | MISS | Text-only Judge calibration drift; rank preserved but positive/negative masses shift upward, Otsu/GMM cut collapses |
+| v2 | Factored Verdict | 2-call AND-gate: P_T × P_S (target × stance, both video-grounded) | 0.7267 | 0.7785 | MISS | Multiplicative AND compresses "tall but not both-tall" positives; v2 P_S alone matches v1 EN oracle exactly |
+| v3 | Polarity-Calibrated Probes | 2-call logit-space fusion of opposite-polarity framings (violates vs fully-consistent) | 0.7764 (tie) | 0.8121 (tie) | MISS | Oracle tie only; AP1 self-binding clause triggered (prob-space average = logit-space fusion on EN); Ablation A leak on ZH (Call 2 adds no signal) |
+| v3 p_evidence | (side diagnostic) | Baseline BINARY_PROMPT re-scored via v3's wrapper | **0.7702** | **0.8188** | — | Interesting: ZH strict-beats baseline by +0.0067, EN misses by −0.0062. Not a unified pass. Suggests ZH baseline oracle is soft to readout perturbation. |
+| v4 | Modality-Split | 2-call disjoint-support: visual-only + text-only, rank-noisy-OR fusion | 0.7640 | 0.7987 | MISS | Joint prompt already exploits modality complementarity; v3 p_evidence strictly beats v4 fused on both datasets (Ablation C prior-art leak); aggregator robustness also violated (prob_avg = noisy-OR) |
+| v5 | Per-Rule Disjunction Readout | 1-call constrained decode of K per-rule "0 0 0 0 ..." binary string, max-pool | 0.7205 | 0.7651 | MISS | **Per-rule variance 8.87e-5 / 9.53e-5, 100× below the 0.01 threshold.** Rule 1 holds 10× the mass of rules 2-K identically on EN and ZH (despite completely different constitutions). The "K-way disjunction" signal is actually a constrained-decode position-1 bias, not rule-specific reasoning. Null story 3 confirmed by the data. |
+| v6 | Coarse Axes Prompt | 1-call input-side manipulation: replace 9/8-rule list with 2-axis (target × hostility) statement; length-matched non-taxonomic control as AP2 defense | running at shutdown | running at shutdown | — | Pipeline not yet completed at director-commanded shutdown. Waves 1-3 done; wave 4 (train control) running as 8211/8212. Runner script is set to complete waves 4 and 5 (eval) autonomously. Final report at `results/prompt_paradigm/report_v6.json` when pipeline exits. |
+
+### Structural generalizations across the 6 iterations
+
+1. **The 2-call family is exhausted on 2B binary_nodef** (v1-v4). Four structurally distinct
+   2-call designs — cascade, AND, polarity-flip, disjoint-support — all failed. The common thread:
+   any 2-call design that narrows either the input support or the readout polarity loses
+   information the joint single-call prompt already captures. This is the v5 "1-call hard
+   constraint" precondition.
+2. **Output-side manipulation is exhausted** (v1-v5). Call count, input support, fusion
+   operator, decode position readout — none produce signal beyond the baseline's single-token
+   P(Yes). The v5 per-rule finding is the strongest evidence: externalizing the disjunction
+   via constrained decode does not expose rule-specific probabilities because the decoder's
+   position-1 bias dominates.
+3. **v3 p_evidence is the closest partial success** (EN 0.7702 / ZH 0.8188). ZH strict-beats
+   baseline by +0.0067 via a readout perturbation of the baseline prompt. EN still misses by
+   −0.0062. No unified method was found that exceeds this partial on both datasets.
+4. **Sub-atom FP phantoms are not a valid method target** (director ruling, standing rule).
+   Multiple iterations produced oracle numbers that depend on landing a threshold at ~10⁻⁸-precise
+   FP positions inside a score cluster. These are unreachable by any label-free method and are
+   ruled off-limits for both teammates.
+
+## meta-selector — ~120 pilots, no passing method found
+
+### Scope
+Input restricted to the four frozen baseline files:
+`results/holistic_2b/{MHClip_EN,MHClip_ZH}/{train,test}_binary.jsonl`. CPU-only. No test labels in
+the selection path at any level — not even via hyperparameter selection. No additional score
+channels. No frozen-file edits.
+
+### What was tested
+Approximately 120 pilot scripts across the following families (partial enumeration from
+`src/meta_selector/`):
+
+- **Classical 1D threshold methods**: Otsu, GMM (K=2,3), MET / Kittler-Illingworth, Triangle
+  (Zack), Rosin (unimodal), Kapur / Yen / Li-Lee / Renyi entropy thresholds.
+- **Parameterized quantile rules**: prior-quantile, std-linear, MAD-linear, IQR-linear (329-hit
+  dense slab in (a,b) enumeration for MAD — rejected as label-tuned at constant selection level).
+- **Fusion / combination methods**: AND/OR/MAJ of Otsu+GMM+KI, voting, bootstrap-Otsu
+  mean/median/mode, trimmed-Otsu, shrinkage-Otsu, density-penalized Otsu, valley-emphasis Otsu.
+- **Non-monotone / subset rules**: atom-subset BFS enumeration confirmed whole-atom Pareto
+  (32 ZH suffix cuts, 31 EN suffix cuts) is saturated at baseline. Non-suffix subset oracle
+  ceilings exist (ZH 0.8456 / 0.8107, EN 0.7702 / 0.6948) but no label-free feature discriminates
+  oracle-ADD from oracle-DROP atoms.
+- **Local / global feature-combined Otsu**: k-NN density, local density (5 bandwidths), gap
+  features (train+pool), count-in-k-MAD windows, log-concavity, distance-to-nearest-modal-peak,
+  distance-to-nearest-valley, z-score, frac-below (train+pool), rank-density.
+- **Density ratio methods**: KLIEP-style, multi-bandwidth log density ratio, noisy-OR of
+  density-ratio cuts.
+- **Transformation + threshold**: Yeo-Johnson, log, power, isotonic-style.
+- **Model-driven selectors**: train-fit GMM posterior, BCV variable selection, Calinski-Harabasz
+  selector.
+- **Spectral and graph methods**: spectral clustering on pool affinity graph (2σ × 3 scales × 2
+  cluster counts), Laplacian label propagation, harmonic function, label spreading, co-training,
+  transductive energy, AE residuals.
+- **Published 1D methods**: Barron 2020 GHT (3,575-config grid sweep).
+- **LR-with-labels upper bound on 27 features**: ZH recovers only 14-15/17 oracle subset atoms,
+  empirically bounds the tested feature family.
+
+### Structural findings (negative results)
+
+1. **Whole-atom suffix Pareto is saturated at baseline on ZH.** 32 legitimate inter-sample-gap
+   thresholds enumerated; baseline (t=0.0333) is the unique joint-maximum on (ACC, mF1). No
+   suffix rule strict-beats. (Job 8042.)
+2. **Non-suffix subset Pareto is strictly larger** (ZH subset oracle 0.8456 / 0.8107; EN 0.7702
+   / 0.6948), but requires non-monotone atom-level labelings. The ZH passing subset pattern
+   includes atoms at alternating score positions (IN/OUT/IN/OUT at adjacent ZH atoms 16-25) that
+   no tested label-free feature can predict.
+3. **Atom-wise positive rates are NOT monotone in score**: 10/31 violations on EN and 9/32 on ZH.
+   This rules out "suffix Pareto = subset Pareto" assumptions, but does not provide a method.
+4. **Sub-atom FP-drift concordance is essentially random on ZH** (52%) and modestly above random
+   on EN (61%). Targeting sub-FP positions is banned by director ruling anyway.
+5. **27-feature LR-with-labels upper bound**: even with labels, logistic regression on the
+   tested 27-feature family can only recover 14-15/17 of the ZH oracle subset atoms. This is
+   a bound on *the tested family*, not on all possible label-free features.
+
+### MAD-rule incident (important cautionary record)
+Early in the session, meta-selector proposed `q = 0.60 + 7.83 * MAD(pool)` as a final deliverable,
+claiming it produced EN 0.7764 / 0.6644 and ZH 0.8188 / 0.7937 (strict-beat both). The constants
+(0.60, 7.83) were selected from a 329-hit dense slab in (a, b) space where "hit" was
+*defined by test-label strict-beat*. This is label-tuning at the meta-level (hyperparameter
+selection via test labels), a violation of "no test labels in the selection path" even though
+the runtime script does not touch labels. Additionally, the strict-beat margin on ZH depended on
+sub-atom FP-drift inside a single 5-sample cluster (atom 0.0373, labels [0,1,1,1,1] in
+FP-ascending order), which is within sampling noise on N=5 and unreachable by a principled
+unsupervised method. Director rejected in 4 separate escalation loops; meta-selector eventually
+retracted and did not re-propose. Rejection is documented in the runs log and informed the
+"sub-atom FP phantoms not a valid target" standing rule. The MAD rule source is retained as
+negative-result documentation at `src/meta_selector/final_mad_selector.py` and
+`results/meta_selector/final_mad.json`, marked REJECTED.
+
+## Director review policies (for future sessions)
+
+These policies were refined across the session and should carry forward:
+
+1. **Gate 1 proposals require pre-pilot belief** (feedback_gate1_bar.md): the author must
+   state they believe the method will strict-beat Gate 2 on both datasets. Pilot-admitted
+   failure is auto-rejection.
+2. **No improvement suggestions from director**: director review is rule-compliance only.
+   Proposing mechanisms is the teammate's job; naming techniques the director thinks might work
+   is forbidden by standing rule.
+3. **No infeasibility reports accepted** (feedback_no_infeasibility.md): rejected at every
+   escalation; standing user directive.
+4. **Be critical at review gates** (feedback_critical_review.md): reject proposals that comply
+   with rules but lack real scientific meaning.
+5. **Sub-atom FP phantoms not a valid target**: standing rule #5, applies to both teammates.
+6. **Label leak at meta-level**: selecting hyperparameters by checking "which constants pass
+   on test" is a label leak even if the runtime script uses no labels. Applies regardless of
+   whether the selected constants live in a "dense slab" or are a specific point.
+7. **Wave-transition stalls**: GPU track stalled 5 times at wave transitions (v1, v2, v3, v4
+   waves) waiting for director nudges. Resolved at v5 by requiring a pipeline runner script that
+   auto-submits waves. v5 and v6 runner scripts worked cleanly.
+8. **Ablation self-binding**: every version from v3 onward had explicit self-binding ablation
+   clauses (e.g., AP1 falsification via prob-space vs logit-space comparison). These caught
+   3 of the 5 MISS verdicts (v3, v4, v5).
+
+## Final state at shutdown (2026-04-13 16:35)
+
+- **Baseline unchanged**: 2B binary_nodef TF (EN 76.40% Otsu / ZH 81.21% GMM) remains the
+  best unified label-free result.
+- **No passing method found** across 6 prompt-paradigm iterations and ~120 meta-selector pilots.
+- **Team shut down by director command** after ~13 hours. The "no target, no stop" rule was
+  enforced autonomously throughout; the shutdown was user-commanded, not teammate-requested.
+- **v6 Coarse Axes Prompt is still running** at shutdown (waves 4 and 5 not yet complete).
+  The runner script is autonomous; final report_v6.json will exist at pipeline exit regardless
+  of team shutdown. User may verify the v6 numbers post-shutdown.
+- Jobs left running: 8211 / 8212 (v6 wave 4, ZH train control). Director did NOT scancel
+  — let them complete naturally. Expected completion within ~45 min of shutdown.
+
+## Artifacts committed in this session
+
+### prompt-paradigm (all new, none overwrite baseline files)
+- Proposals: `docs/proposals/prompt_paradigm_v{1..6}.md`
+- Scorers: `src/prompt_paradigm/{observe_then_judge,factored_verdict,polarity_calibration,modality_split,per_rule_readout,coarse_axes_prompt}.py`
+- Evaluators: `src/prompt_paradigm/{eval_with_frozen_thresholds,eval_factored,eval_polarity,eval_modality,eval_per_rule,eval_coarse_axes}.py`
+- Pipeline runners: `src/prompt_paradigm/{run_v5_pipeline,run_v6_pipeline}.sh`
+- Scoring outputs: `results/prompt_paradigm/MHClip_{EN,ZH}/{test,train}_{obsjudge,factored,polarity,modality,per_rule,coarse_axes_{axes,control}}.jsonl`
+- Gate 2 reports: `results/prompt_paradigm/report{_v2,_v3,_v4,_v5,_v6}.json` (v6 produced at pipeline exit)
+- Summary: `results/analysis/prompt_paradigm_report.md`
+- Run log: `docs/experiments/prompt_paradigm_runs.md`
+
+### meta-selector (all new, none overwrite baseline files)
+- Proposals: `docs/proposals/meta_selector_v{1..4}.md`
+- Final-work candidate (REJECTED): `src/meta_selector/final_mad_selector.py` + `results/meta_selector/final_mad.json`
+- ~120 diagnostic pilot scripts: `src/meta_selector/diag_*.py`, `pilot_*.py`, `inspect_*.py`
+- Run log: `docs/experiments/meta_selector_runs.md`
+- Barrier characterization note: `docs/experiments/meta_selector_v4_literature_notes.md`
+- Summary: `results/analysis/meta_selector_report.md`
+
+### Director artifacts
+- CLAUDE.md 2-MLLM-call cap edit (prompt budget policy)
+- Verification scripts: `scripts/director_verify_bucket_pareto.py` +
+  `results/analysis/director_pareto_check.json`
+- Memory files under `.claude/projects/-data-jehc223-EMNLP2/memory/`:
+  `project_prompt_budget.md`, `project_team_structure_2026_04_13.md`,
+  `feedback_critical_review.md`, `feedback_no_infeasibility.md`,
+  `feedback_gate1_bar.md`, `feedback_meta_selector_autonomous.md`,
+  `feedback_literature_fallback.md`, `feedback_no_infeasibility.md`,
+  `project_prompt_paradigm_v5_miss.md`.
+
+## Recommendation for next session
+
+The natural next steps, if the user wants to continue after this session:
+
+1. **Verify v6 post-shutdown**: when the v6 runner exits, inspect
+   `results/prompt_paradigm/report_v6.json` to check clauses 1-5 (oracle-first, mF1
+   non-regression, baseline load-bearing, v3 prior-art strict-beat, length-matched control
+   does-not-beat-baseline). If v6 passes, the team's target is met retroactively.
+2. **If v6 does not pass**, the output-side + 1-call-input-side design space is largely
+   exhausted at 2B. Genuine progress from this point likely requires *changing something the
+   current rules freeze*: model size (8B with the v3 observed cross-lingual asymmetry is the
+   obvious candidate), scoring pipeline internals, or dataset scope. Any of these is a scope
+   change that requires user-level authorization.
+3. **Cross-dataset transfer** as an alternative framing: v3 p_evidence's ZH strict-beat
+   (0.8188) suggests the ZH oracle ceiling is soft to small readout perturbations. A method
+   that explicitly exploits this — e.g., "find the readout perturbation that maximizes
+   unsupervised bimodality" — might produce a stronger ZH signal without changing the 2B
+   model. This is an input-side direction not tried in v1-v6.
+4. **Meta-selector track is structurally near-exhausted** but not provably so. The LR-with-
+   labels upper bound on 27 features (14-15/17 on ZH) is suggestive. A non-suffix subset rule
+   driven by a truly non-continuous label-free feature (iterative fixed-point, transductive
+   graph cuts with different edge weights, or learned representations from an autoencoder
+   trained on the train pool) remains theoretically possible. meta-selector did not run
+   exhaustive pilots in these families and may be able to find a passing method with more
+   compute.

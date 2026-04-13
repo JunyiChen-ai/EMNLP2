@@ -120,6 +120,7 @@ CONFIGS = {
     "binary_withdef": ("binary", "_withdef"),
     "binary_deflected": ("binary", "_deflected"),
     "binary_minimal": ("binary", "_minimal"),
+    "binary_t1000": ("binary", "_t1000"),
     "triclass_narrow": ("triclass", ""),
     "triclass_broad": ("triclass", "_broad"),
     "triclass_nodef": ("triclass", "_nodef"),

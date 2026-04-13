@@ -43,6 +43,8 @@ These are the failure modes that have repeatedly derailed this line of work. Tre
 
 **What to do instead:** Single forward pass by default. If you truly need more than one call, each call must correspond to a *distinct, named role* in the method (e.g., "observe" vs "judge") — not K i.i.d. samples of the same role. Every extra call must be defended in the ablation: remove it, and the story must still make sense even if the number drops.
 
+**Hard cap: up to 2 MLLM calls per video** (as of 2026-04-13). Each of the ≤2 calls must correspond to a distinct, named role (e.g., *observe* vs *judge*). More than 2 calls per video is forbidden regardless of role assignment or story. This cap exists to keep the method deployment-realistic and to force design discipline — if two roles cannot carry the story, adding a third will not save it.
+
 ### Anti-pattern 2 — Engineering tricks without a scientific story
 
 **Do not** adopt a technique just because it worked in a different paper or because it bumped the metric in a pilot. Every design choice must answer:
