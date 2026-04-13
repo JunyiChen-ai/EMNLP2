@@ -563,7 +563,16 @@ Approximately 120 pilot scripts across the following families (partial enumerati
 
 1. **Whole-atom suffix Pareto is saturated at baseline on ZH.** 32 legitimate inter-sample-gap
    thresholds enumerated; baseline (t=0.0333) is the unique joint-maximum on (ACC, mF1). No
-   suffix rule strict-beats. (Job 8042.)
+   suffix rule strict-beats. (Job 8042.) **On EN, the atom structure allows ONE strict-ACC-beat
+   cell one atom above baseline** (atom ≥ 0.3775, acc=0.7702 / mF1=0.6513) — strict-ACC-beat
+   +0.62pp, but mF1 regresses −0.0019. Multiple label-free methods converge on this exact cell:
+   (a) meta-selector GHT grid search (3,575 configs, Barron 2020): best EN cell ν=1000 τ=0.2
+   κ=64 ω=0.2 → acc=0.7702 / mf=0.6513 at t=0.3492. Total "strict-both" wins across the grid: 0.
+   (b) prompt-paradigm v3 p_evidence (baseline BINARY_PROMPT re-scored with v3's wrapper): EN
+   oracle 0.7702. (c) meta-selector non-suffix subset oracle (labeled upper bound): EN ACC
+   ceiling 0.7702. All three converge on the same atom because it is the atom-boundary cell
+   immediately above the baseline atom on EN — the data side pins the best available single
+   ACC-upgrade to this one point.
 2. **Non-suffix subset Pareto is strictly larger** (ZH subset oracle 0.8456 / 0.8107; EN 0.7702
    / 0.6948), but requires non-monotone atom-level labelings. The ZH passing subset pattern
    includes atoms at alternating score positions (IN/OUT/IN/OUT at adjacent ZH atoms 16-25) that
