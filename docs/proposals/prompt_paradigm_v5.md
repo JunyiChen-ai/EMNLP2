@@ -1,5 +1,14 @@
 # prompt_paradigm v5 — Per-Rule Disjunction Readout (Gate 1 proposal)
 
+> **POST-HOC CORRECTION NOTICE (2026-04-13 later session, root-cause pass)**: this
+> proposal cites "v3 p_evidence" as a prior-art target. The root cause is NOT an atom-
+> level phantom — it is that v3's `polarity_calibration.py:83` deleted the sentence
+> `"You are a content moderation analyst."` from the user message, so v3 Call 1 uses a
+> different prompt from baseline. 78% of videos differ (max |Δ|=0.2151). Under classical
+> label-free methods on the shifted prompt, all cells are below baseline. Any
+> "beat v3 p_evidence" clause here is against a shifted-prompt target, not a
+> perturbation of baseline. See STATE_ARCHIVE §"v3 p_evidence row correction".
+
 Author: prompt-paradigm (Teammate A)
 Date: 2026-04-13
 Status: Gate 1 — awaiting team-lead approval

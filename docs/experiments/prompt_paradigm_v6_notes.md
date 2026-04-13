@@ -3,6 +3,15 @@
 Author: prompt-paradigm (Teammate A)
 Status: DRAFTING. Not a proposal. Gate 1 proposal will be `docs/proposals/prompt_paradigm_v6.md`.
 
+> **CORRECTION NOTICE (2026-04-13 later session, root-cause pass)**: references below
+> to "v3 p_evidence ZH oracle 0.8188" as prior-art are **not** about atom-level phantom
+> numbers. The real issue: v3's `polarity_calibration.py:83` deleted the sentence
+> `"You are a content moderation analyst."` from the user message, so v3 Call 1 is NOT
+> baseline — it's a different prompt. 78% of videos differ, max |Δ|=0.2151. Under
+> classical methods on the shifted prompt, all 4 TR/TF × Otsu/GMM cells are below
+> baseline on both datasets. v3 p_evidence is NOT a valid prior-art target. See
+> STATE_ARCHIVE §"v3 p_evidence row correction".
+
 ## Starting premises (from Gate 2 v5 post-mortem)
 
 - 1-call hard constraint carried forward from v5.

@@ -27,6 +27,7 @@ PROJECT_ROOT = "/data/jehc223/EMNLP2"
 CONSTITUTION_MAP = {
     "MHClip_EN": "youtube",
     "MHClip_ZH": "bilibili",
+    "HateMM": "youtube",
 }
 
 YOUTUBE_RULES = """1. Encourage violence against groups based on protected status
@@ -280,8 +281,10 @@ def evaluate_scores(out_path, dataset):
             if s is None or vid not in annotations:
                 continue
             gt_label = annotations[vid]["label"]
-            # Hateful+Offensive -> 1, Normal -> 0
-            gt = 1 if gt_label in ("Hateful", "Offensive") else 0
+            if dataset == "HateMM":
+                gt = 1 if gt_label == "Hate" else 0
+            else:
+                gt = 1 if gt_label in ("Hateful", "Offensive") else 0
             scores.append(s)
             labels.append(gt)
 
@@ -370,7 +373,7 @@ def evaluate_scores(out_path, dataset):
 
 def main():
     parser = argparse.ArgumentParser(description="2B baseline holistic scoring")
-    parser.add_argument("--dataset", required=True, choices=["MHClip_EN", "MHClip_ZH"])
+    parser.add_argument("--dataset", required=True, choices=["MHClip_EN", "MHClip_ZH", "HateMM"])
     parser.add_argument("--split", default="test", choices=["train", "test"])
     parser.add_argument("--mode", required=True, choices=["binary", "triclass"])
     parser.add_argument("--model", default="Qwen/Qwen3-VL-2B-Instruct")

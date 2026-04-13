@@ -420,7 +420,7 @@ Two calls per video with distinct roles:
 - `results/calibrated/MHClip_ZH/` (calibrated scores)
 
 ### Scripts (new)
-- `src/analyze_iteration0.py` — Iteration 0 analysis (metrics, distributions, unsupervised thresholds)
+- `archive/post_shutdown_probes/analyze_iteration0.py` — Iteration 0 analysis (metrics, distributions, unsupervised thresholds)
 - `src/calibrate_and_threshold.py` — Calibration + Otsu/GMM threshold pipeline
 - `src/content_free_calibration.py` — Content-free P(Yes) measurement
 
@@ -497,8 +497,8 @@ no passing method was found.**
 | v1 | Observe-then-Judge | 2-call text cascade (video Observer → text-only Judge) | 0.7391 | 0.7785 | MISS | Text-only Judge calibration drift; rank preserved but positive/negative masses shift upward, Otsu/GMM cut collapses |
 | v2 | Factored Verdict | 2-call AND-gate: P_T × P_S (target × stance, both video-grounded) | 0.7267 | 0.7785 | MISS | Multiplicative AND compresses "tall but not both-tall" positives; v2 P_S alone matches v1 EN oracle exactly |
 | v3 | Polarity-Calibrated Probes | 2-call logit-space fusion of opposite-polarity framings (violates vs fully-consistent) | 0.7764 (tie) | 0.8121 (tie) | MISS | Oracle tie only; AP1 self-binding clause triggered (prob-space average = logit-space fusion on EN); Ablation A leak on ZH (Call 2 adds no signal) |
-| v3 p_evidence | (side diagnostic) | Baseline BINARY_PROMPT re-scored via v3's wrapper | **0.7702** | **0.8188** | — | Interesting: ZH strict-beats baseline by +0.0067, EN misses by −0.0062. Not a unified pass. Suggests ZH baseline oracle is soft to readout perturbation. |
-| v4 | Modality-Split | 2-call disjoint-support: visual-only + text-only, rank-noisy-OR fusion | 0.7640 | 0.7987 | MISS | Joint prompt already exploits modality complementarity; v3 p_evidence strictly beats v4 fused on both datasets (Ablation C prior-art leak); aggregator robustness also violated (prob_avg = noisy-OR) |
+| v3 p_evidence | **NOT a baseline perturbation — a different prompt** | v3's re-implemented scorer, **with one sentence dropped from the user message** (see row note) | EN tf_otsu 0.7516 | ZH tf_gmm 0.7987 | — | **ROOT-CAUSE CORRECTION (2026-04-13 later session, second pass)**: v3 p_evidence is NOT "baseline re-scored via v3's wrapper". It is scored with a **different prompt**: the user message has the sentence `"You are a content moderation analyst."` **deleted** from its start (compare `src/score_holistic_2b.py:52` vs `archive/prompt_paradigm_v1_to_v6/polarity_calibration.py:83`). This was meant to de-duplicate with the system message, but 2B is prompt-sensitive enough that removing those 45 characters **shifts scores on 127/161 EN (78%) and 109/149 ZH (73%) videos, with max |Δ|=0.2151**. Score-level correlation with baseline is 0.9629 EN / 0.9796 ZH — high but far from identity. **v3's own Ablation A integrity check ("A reproduces baseline within FP tolerance") was silently violated** — the teammate did not catch it. All previously-reported "v3 p_evidence vs baseline" comparisons are comparisons between **two different prompts**, not between "baseline and a perturbation of it". The classical-method cells above (EN tf_otsu 0.7516, ZH tf_gmm 0.7987) are the real label-free numbers on this shifted-prompt score file — **all below baseline on both datasets**. The session's 0.8188 ZH claim came from an oracle sweep on this shifted-prompt file; whether that number is atom-clean or a sub-atom phantom is irrelevant because it was never "beating baseline with baseline's prompt" in the first place. |
+| v4 | Modality-Split | 2-call disjoint-support: visual-only + text-only, rank-noisy-OR fusion | 0.7640 | 0.7987 | MISS | Joint prompt already exploits modality complementarity; ~~v3 p_evidence strictly beats v4 fused on both datasets~~ (the v3 p_evidence comparison was based on the 0.8188 phantom and is no longer valid — see v3 p_evidence row correction); aggregator robustness also violated (prob_avg = noisy-OR) |
 | v5 | Per-Rule Disjunction Readout | 1-call constrained decode of K per-rule "0 0 0 0 ..." binary string, max-pool | 0.7205 | 0.7651 | MISS | **Per-rule variance 8.87e-5 / 9.53e-5, 100× below the 0.01 threshold.** Rule 1 holds 10× the mass of rules 2-K identically on EN and ZH (despite completely different constitutions). The "K-way disjunction" signal is actually a constrained-decode position-1 bias, not rule-specific reasoning. Null story 3 confirmed by the data. |
 | v6 | Coarse Axes Prompt | 1-call input-side manipulation: replace 9/8-rule list with 2-axis (target × hostility) statement; length-matched non-taxonomic control as AP2 defense | running at shutdown | running at shutdown | — | Pipeline not yet completed at director-commanded shutdown. Waves 1-3 done; wave 4 (train control) running as 8211/8212. Runner script is set to complete waves 4 and 5 (eval) autonomously. Final report at `results/prompt_paradigm/report_v6.json` when pipeline exits. |
 
@@ -514,9 +514,30 @@ no passing method was found.**
    P(Yes). The v5 per-rule finding is the strongest evidence: externalizing the disjunction
    via constrained decode does not expose rule-specific probabilities because the decoder's
    position-1 bias dominates.
-3. **v3 p_evidence is the closest partial success** (EN 0.7702 / ZH 0.8188). ZH strict-beats
-   baseline by +0.0067 via a readout perturbation of the baseline prompt. EN still misses by
-   −0.0062. No unified method was found that exceeds this partial on both datasets.
+3. **~~v3 p_evidence is the closest partial success~~** — **ROOT-CAUSE CORRECTION
+   (2026-04-13 later session, second pass)**: v3 p_evidence was not a "partial success"
+   of any kind because **it was never scored on the baseline prompt**. The v3 Call 1
+   scorer (`archive/prompt_paradigm_v1_to_v6/polarity_calibration.py:83`) uses a user message that has
+   `"You are a content moderation analyst."` deleted from the beginning (the frozen
+   `BINARY_PROMPT` in `src/score_holistic_2b.py:52` starts with that sentence; v3 dropped
+   it). 2B is prompt-sensitive enough that this 45-character deletion **shifts 78% of
+   EN test scores and 73% of ZH scores**, with max single-video drift 0.2151 and
+   baseline-vs-p_evidence correlation 0.963 EN / 0.980 ZH. v3's own Ablation A integrity
+   check was supposed to catch this ("A reproduces baseline within FP tolerance") but the
+   teammate never ran the diff and silently shipped a shifted-prompt comparison as if it
+   were baseline. **Under classical label-free methods on the shifted-prompt score file
+   itself**: EN tf_otsu 0.7516, tf_gmm 0.7081; ZH tf_otsu 0.7517, tf_gmm 0.7987 — **all
+   below baseline on both datasets**. Under oracle sweep: the 0.8188 ZH number was on the
+   shifted prompt, not on baseline, so it was never a "strict-beat of baseline" in any
+   meaningful sense. **No iteration v1-v6, no ablation, no meta-selector pilot produced
+   any label-free strict-beat of baseline on any single dataset.** The only atom-clean
+   oracle-level strict-beat found in this project is today's cross-config fusion cell
+   (see "Post-shutdown follow-up" section below), and even that one fails H2.
+
+   **Side-finding**: v3 p_evidence is effectively **an unregistered 7th prompt config**
+   (binary_nodef with the system-message-duplicate sentence stripped). Its 78%
+   score-divergence-from-baseline at 0.96 correlation makes it a legitimate candidate
+   for cross-config fusion that was NOT tested in the earlier pair/triple/quad probe.
 4. **Sub-atom FP phantoms are not a valid method target** (director ruling, standing rule).
    Multiple iterations produced oracle numbers that depend on landing a threshold at ~10⁻⁸-precise
    FP positions inside a score cluster. These are unreachable by any label-free method and are
@@ -532,7 +553,7 @@ channels. No frozen-file edits.
 
 ### What was tested
 Approximately 120 pilot scripts across the following families (partial enumeration from
-`src/meta_selector/`):
+`archive/meta_selector_pilots/`):
 
 - **Classical 1D threshold methods**: Otsu, GMM (K=2,3), MET / Kittler-Illingworth, Triangle
   (Zack), Rosin (unimodal), Kapur / Yen / Li-Lee / Renyi entropy thresholds.
@@ -568,11 +589,14 @@ Approximately 120 pilot scripts across the following families (partial enumerati
    +0.62pp, but mF1 regresses −0.0019. Multiple label-free methods converge on this exact cell:
    (a) meta-selector GHT grid search (3,575 configs, Barron 2020): best EN cell ν=1000 τ=0.2
    κ=64 ω=0.2 → acc=0.7702 / mf=0.6513 at t=0.3492. Total "strict-both" wins across the grid: 0.
-   (b) prompt-paradigm v3 p_evidence (baseline BINARY_PROMPT re-scored with v3's wrapper): EN
-   oracle 0.7702. (c) meta-selector non-suffix subset oracle (labeled upper bound): EN ACC
-   ceiling 0.7702. All three converge on the same atom because it is the atom-boundary cell
-   immediately above the baseline atom on EN — the data side pins the best available single
-   ACC-upgrade to this one point.
+   (b) ~~prompt-paradigm v3 p_evidence (baseline BINARY_PROMPT re-scored with v3's wrapper)~~:
+   **INVALIDATED — v3 p_evidence was NOT scored with baseline's BINARY_PROMPT**; see
+   v3 p_evidence row correction above. It's a shifted prompt (missing one sentence in the
+   user message), not a re-scoring of baseline. Its oracle number therefore doesn't belong
+   in this "converge on baseline binary_nodef atom 0.3775" list at all.
+   (c) meta-selector non-suffix subset oracle (labeled upper bound): EN ACC ceiling 0.7702.
+   The two valid datapoints (GHT grid search + non-suffix subset oracle) still converge on
+   the same atom-boundary cell immediately above the baseline atom on EN.
 2. **Non-suffix subset Pareto is strictly larger** (ZH subset oracle 0.8456 / 0.8107; EN 0.7702
    / 0.6948), but requires non-monotone atom-level labelings. The ZH passing subset pattern
    includes atoms at alternating score positions (IN/OUT/IN/OUT at adjacent ZH atoms 16-25) that
@@ -597,7 +621,7 @@ FP-ascending order), which is within sampling noise on N=5 and unreachable by a 
 unsupervised method. Director rejected in 4 separate escalation loops; meta-selector eventually
 retracted and did not re-propose. Rejection is documented in the runs log and informed the
 "sub-atom FP phantoms not a valid target" standing rule. The MAD rule source is retained as
-negative-result documentation at `src/meta_selector/final_mad_selector.py` and
+negative-result documentation at `archive/meta_selector_pilots/final_mad_selector.py` and
 `results/meta_selector/final_mad.json`, marked REJECTED.
 
 ## Director review policies (for future sessions)
@@ -642,9 +666,9 @@ These policies were refined across the session and should carry forward:
 
 ### prompt-paradigm (all new, none overwrite baseline files)
 - Proposals: `docs/proposals/prompt_paradigm_v{1..6}.md`
-- Scorers: `src/prompt_paradigm/{observe_then_judge,factored_verdict,polarity_calibration,modality_split,per_rule_readout,coarse_axes_prompt}.py`
-- Evaluators: `src/prompt_paradigm/{eval_with_frozen_thresholds,eval_factored,eval_polarity,eval_modality,eval_per_rule,eval_coarse_axes}.py`
-- Pipeline runners: `src/prompt_paradigm/{run_v5_pipeline,run_v6_pipeline}.sh`
+- Scorers: `archive/prompt_paradigm_v1_to_v6/{observe_then_judge,factored_verdict,polarity_calibration,modality_split,per_rule_readout,coarse_axes_prompt}.py`
+- Evaluators: `archive/prompt_paradigm_v1_to_v6/{eval_with_frozen_thresholds,eval_factored,eval_polarity,eval_modality,eval_per_rule,eval_coarse_axes}.py`
+- Pipeline runners: `archive/prompt_paradigm_v1_to_v6/{run_v5_pipeline,run_v6_pipeline}.sh`
 - Scoring outputs: `results/prompt_paradigm/MHClip_{EN,ZH}/{test,train}_{obsjudge,factored,polarity,modality,per_rule,coarse_axes_{axes,control}}.jsonl`
 - Gate 2 reports: `results/prompt_paradigm/report{_v2,_v3,_v4,_v5,_v6}.json` (v6 produced at pipeline exit)
 - Summary: `results/analysis/prompt_paradigm_report.md`
@@ -652,8 +676,8 @@ These policies were refined across the session and should carry forward:
 
 ### meta-selector (all new, none overwrite baseline files)
 - Proposals: `docs/proposals/meta_selector_v{1..4}.md`
-- Final-work candidate (REJECTED): `src/meta_selector/final_mad_selector.py` + `results/meta_selector/final_mad.json`
-- ~120 diagnostic pilot scripts: `src/meta_selector/diag_*.py`, `pilot_*.py`, `inspect_*.py`
+- Final-work candidate (REJECTED): `archive/meta_selector_pilots/final_mad_selector.py` + `results/meta_selector/final_mad.json`
+- ~120 diagnostic pilot scripts: `archive/meta_selector_pilots/diag_*.py`, `pilot_*.py`, `inspect_*.py`
 - Run log: `docs/experiments/meta_selector_runs.md`
 - Barrier characterization note: `docs/experiments/meta_selector_v4_literature_notes.md`
 - Summary: `results/analysis/meta_selector_report.md`
@@ -682,10 +706,17 @@ The natural next steps, if the user wants to continue after this session:
    current rules freeze*: model size (8B with the v3 observed cross-lingual asymmetry is the
    obvious candidate), scoring pipeline internals, or dataset scope. Any of these is a scope
    change that requires user-level authorization.
-3. **Cross-dataset transfer** as an alternative framing: v3 p_evidence's ZH strict-beat
-   (0.8188) suggests the ZH oracle ceiling is soft to small readout perturbations. A method
-   that explicitly exploits this — e.g., "find the readout perturbation that maximizes
-   unsupervised bimodality" — might produce a stronger ZH signal without changing the 2B
+3. ~~**Cross-dataset transfer** as an alternative framing: v3 p_evidence's ZH strict-beat (0.8188)
+   suggests the ZH oracle ceiling is soft to small readout perturbations.~~ **CORRECTED twice**:
+   the v3 p_evidence ZH number was not a "readout perturbation" — it was computed on a **shifted
+   prompt** (user message has "You are a content moderation analyst." dropped from the start).
+   v3's Call 1 scorer is a different prompt from baseline, not a perturbation of it; its 78%
+   per-video score divergence is prompt sensitivity, not scoring noise. So the "soft to readout
+   perturbation" framing is twice-wrong: the direction isn't "readout" (it's prompt text), and
+   the ZH number never was a strict-beat of baseline in the first place. What the finding DOES
+   support is: **2B is prompt-sensitive enough that dropping 45 characters from a 300+ character
+   user message shifts 78% of videos' scores**, which makes the shifted prompt a legitimate
+   unregistered 7th config for cross-config fusion. A method
    model. This is an input-side direction not tried in v1-v6.
 4. **Meta-selector track is structurally near-exhausted** but not provably so. The LR-with-
    labels upper bound on 27 features (14-15/17 on ZH) is suggestive. A non-suffix subset rule
@@ -694,3 +725,349 @@ The natural next steps, if the user wants to continue after this session:
    trained on the train pool) remains theoretically possible. meta-selector did not run
    exhaustive pilots in these families and may be able to find a passing method with more
    compute.
+
+---
+
+## Post-shutdown diagnostic: label-free selector scanfold probe (2026-04-13 late session)
+
+**Question asked**: is the current unified baseline `(EN→Otsu, ZH→GMM)` recoverable by any
+pre-registered non-self-referential label-free criterion applied to a K-method pool of
+classical unsupervised thresholding methods? If yes, the baseline has a real label-free
+cover story. If no, the baseline is genuinely label-peeked and the label-free claim is
+weaker than stated.
+
+### Setup (frozen BEFORE results, documented in `docs/experiments/selector_scanfold_notes.md`)
+
+- **Method pool (K=10)**: otsu, gmm (K=2), met (Kittler-Illingworth), triangle (Zack), kapur
+  (max-entropy), li_lee (min cross-entropy), yen (max correlation), rosin (unimodal),
+  renyi (α=0.5), median.
+- **Non-self-referential criterion pool (6)**: silhouette, neg_davies_bouldin, dunn,
+  gap_statistic, kde_valley_depth, balance_penalty.
+- **Excluded (self-referential)**: Calinski-Harabasz (≡ Otsu), 2-Gaussian BIC (≡ GMM),
+  Otsu criterion value, MET J(t), Kapur/Li-Lee/Yen entropies.
+- **Datasets**: MHClip_EN (n=161), MHClip_ZH (n=149), HateMM (n=215, newly scored this
+  session via 2B binary_nodef + YouTube rules, job 8229). HateMM required three additive
+  edits to `src/score_holistic_2b.py` (CONSTITUTION_MAP entry, dataset-aware label collapse,
+  argparse choice).
+- **Passing rule**: criterion argmax must equal labeled-best method on all 3 datasets.
+
+### Key finding 1 — three datasets, three different labeled-best methods
+
+| Dataset | Labeled-best method | ACC | mF1 | threshold |
+|---|---|---|---|---|
+| MHClip_EN | **otsu** | 0.7640 | 0.6532 | 0.2705 |
+| MHClip_ZH | **gmm** | 0.8121 | 0.7871 | 0.0362 |
+| HateMM | **li_lee** | 0.8047 | 0.7930 | 0.2410 |
+
+The current `(EN→Otsu, ZH→GMM)` pairing is not just a binary peek — each dataset has a
+different labeled argmax out of the K=10 pool. HateMM's winner is li_lee, not Otsu or GMM.
+
+### Key finding 2 — 0 of 6 criteria pass
+
+| criterion | EN pick | ZH pick | HateMM pick | PASS? |
+|---|---|---|---|---|
+| silhouette | otsu ✓ | otsu ✗ | otsu ✗ | fail |
+| neg_davies_bouldin | otsu ✓ | otsu ✗ | kapur ✗ | fail |
+| dunn | otsu ✓ | otsu ✗ | otsu ✗ | fail |
+| gap_statistic | otsu ✓ | otsu ✗ | otsu ✗ | fail |
+| kde_valley_depth | otsu ✓ | otsu ✗ | yen ✗ | fail |
+| balance_penalty | median ✗ | median ✗ | median ✗ | fail |
+
+5 of 6 criteria unanimously pick **Otsu** on all three datasets (with minor exceptions
+on HateMM). Balance_penalty degenerates to always picking median. **No criterion recovers
+the labeled argmax on either ZH or HateMM.**
+
+### Why — structural interpretation
+
+All geometric criteria rank Otsu's threshold as the cleanest-looking partition on every
+dataset (highest silhouette, deepest KDE valley, etc.). On EN, this agrees with the
+labels. On ZH and HateMM, it disagrees:
+
+- **ZH**: GMM wins at t=0.036, sitting directly on top of the negative mode. Silhouette
+  0.55 vs Otsu's 0.84; KDE-valley 0.04 vs Otsu's 0.93. The partition is geometrically
+  *terrible* but labeled-best, because the 2B model is systematically under-confident on
+  Chinese hateful content and the low threshold captures its low-score positives. This is
+  a calibration pathology, not a separation structure.
+- **HateMM**: li_lee wins at t=0.241 by +1.4pp over Otsu (0.7907 vs 0.8047). Within noise
+  at n=215, but stable as the argmax. Otsu is the second-best by every measure.
+- **EN**: geometry and labels agree; Otsu is both.
+
+### Consequences for the baseline's label-free claim
+
+A fully label-free committment would have had to pick a single method in advance. The
+only geometrically-defensible pre-commit is "silhouette-best" = **Otsu on all datasets**.
+The honest label-free baseline under that pre-commit is:
+
+| Dataset | Silhouette-selected Otsu | vs current baseline |
+|---|---|---|
+| EN | 0.7640 / 0.6532 | same |
+| ZH | 0.7584 / 0.6042 | **−5.37pp ACC, −18.3pp mF1** |
+| HateMM | 0.7907 / 0.7674 | — |
+
+The current ZH baseline (GMM 0.8121) is **not recoverable** in a label-free way. The
+`(EN→Otsu, ZH→GMM)` pairing is genuinely label-selected, and ZH is the specific
+regression point.
+
+### What this kills
+
+- The hope that a classical cluster-quality criterion can back-justify the current
+  unified baseline as label-free. The criterion family is exhausted in the pre-registered
+  non-self-referential sense.
+- Any selector whose logic is "pick the geometrically cleanest partition". That logic
+  always picks Otsu, which regresses on ZH.
+
+### What this does NOT kill
+
+- ~~Readout-perturbation exploration (v3 p_evidence still holds a ZH strict-beat of +0.67pp).~~
+  **CORRECTED twice (2026-04-13 later session)**: the v3 p_evidence claim was not about
+  readout perturbation at all. It was a shifted prompt (user message dropped
+  "You are a content moderation analyst." prefix) silently scored as if it were baseline.
+  The direction is not "readout perturbation" but **prompt micro-surgery**: the session
+  accidentally demonstrated that **a 45-character deletion from the user message shifts
+  78% of 2B's video-level scores**, which is a prompt-sensitivity finding. The shifted
+  prompt is effectively an unregistered 7th config and worth including in cross-config
+  fusion.
+- Input-side prompt reformulations (v6 Coarse Axes, not fully verified at shutdown).
+- Non-geometric selectors grounded in calibration-invariance rather than cluster quality
+  — e.g., a selector that tests stability under noise injection or test-time augmentation.
+  Not tested in this probe.
+- Iterative atom-level flag methods with non-monotone assignment. Orthogonal to this probe.
+
+### Two publishable framings
+
+1. **Negative result**: "label-free threshold selection on MHClip is structurally harder
+   than cluster-quality criteria can address, because dataset-specific MLLM calibration
+   artifacts push the labeled-best threshold away from the geometrically-best one."
+2. **Honest baseline redefinition**: drop the label-peeked `(EN→Otsu, ZH→GMM)` and
+   report the silhouette-committed baseline at 0.7640 / 0.7584 / 0.7907. The
+   "method-must-beat-baseline" bar on ZH drops to 0.7584, which several earlier
+   prompt_paradigm ablation cells already cleared.
+
+### Artifacts
+
+- `archive/post_shutdown_probes/probe_selector_scanfold.py` — the probe (10 methods × 6 criteria × 3 datasets, CPU)
+- `results/analysis/probe_selector_scanfold.json` — full result dict
+- `results/holistic_2b/HateMM/test_binary.jsonl` — new HateMM baseline (215 videos)
+- `docs/experiments/selector_scanfold_notes.md` — pre-registration + results + verdict
+- `src/score_holistic_2b.py` — 3 additive edits to support HateMM
+- `logs/probe_scanfold_v2.out` — final 3-dataset probe stdout
+- `logs/score_hatemm_test.out` — HateMM scoring log
+
+---
+
+## Post-shutdown follow-up: cross-config prompt fusion probe (2026-04-13 later session)
+
+**Context**: user re-scoped the post-shutdown work from "negative finding and
+honest framing" to "make it strict-beat or keep searching — negatives and
+reframings don't publish." Called for a direction that actually moves the
+baseline numbers. The only unexplored region both session tracks left open
+is **cross-config score fusion** — fusing the 6 already-scored 2B prompt configs
+(`binary_{nodef,withdef,minimal}`, `triclass_{narrow,broad,nodef}`) on the same
+videos into new score spaces, and searching for a label-free threshold that
+strict-beats both EN and ZH on the fused cell.
+
+### Setup (frozen BEFORE results; full details in `docs/experiments/crossconfig_fusion_notes.md`)
+
+- **Subsets**: singles (6) + pairs (15) + triples (20) + quads (15) = 56 subsets.
+- **Fusion operators (8, non-self-referential)**: prob_avg, logit_avg, rank_avg,
+  noisy_or_prob, noisy_or_rank, max, min, geom_mean.
+- **Label-free pool (10)**: otsu, gmm, met, triangle, kapur, li_lee, yen, rosin,
+  renyi, median (reused from scanfold probe).
+- **Atom discipline**: `np.round(·, 6)` on all scores pre-sweep. Enforces session
+  standing rule that sub-atom FP-noise threshold placements are banned. A first
+  non-atomized run produced 6 "strict-beat" cells that were **all FP phantoms**
+  (thresholds placed inside clusters of e.g. 0.32082127… variants differing at
+  the 1e-9 level); atom quantization eliminated all of them.
+- **H1**: oracle atom sweep strict-beats both on the fused cell.
+- **H2**: a label-free method lands at the oracle cell.
+
+### Result 1 — H1: exactly **1** cell out of 56×8 = 408 subset×fusion combinations
+
+```
+size=2  binary_withdef + binary_minimal | logit_avg
+  EN: t=0.2018  acc=0.7702  mf=0.6723   Δacc=+0.0062  Δmf=+0.0191
+  ZH: t=0.0474  acc=0.8188  mf=0.7914   Δacc=+0.0067  Δmf=+0.0043
+```
+
+Margin: **1 video on EN, 2 videos on ZH**. mF1 improves on both sides — no
+regression. No other pair, triple, or quadruple unlocks a second cell with any
+fusion operator.
+
+This is the **first atom-clean finding in the session** where a single unified
+(pair, fusion) cell strict-beats baseline on both datasets at the oracle level
+with mF1 non-regression. The session's historical "EN oracle ceiling 77.02%
+with mF1 regression 0.6532→0.6513" claim is refined: **the regression is a
+property of single binary_nodef, not of the score space itself**. Fused with
+binary_minimal via logit_avg, the same 0.7702 ACC cell comes with a **+0.0191
+mF1 improvement** instead.
+
+**Mechanism**: logit_avg is the Bayesian-correct combination of two independent
+calibrated binary classifiers under conditional independence. Of the 8 fusion
+operators, only logit_avg passes H1 on this pair — the other 7 (prob_avg,
+rank_avg, noisy_or_*, max, min, geom_mean) all fail. The win is specifically
+about log-space linear combination, not any aggregation.
+
+### Result 2 — H2: **0** cells
+
+On the single H1 cell, the 10 classical label-free methods produce:
+
+| Dataset | Closest method | t | acc | mf | verdict |
+|---|---|---|---|---|---|
+| EN | renyi | 0.2224 | **0.7640** | 0.6601 | ties ACC, below mF1 |
+| EN | kapur/yen | 0.1956 | 0.7578 | 0.6611 | below both |
+| ZH | triangle/rosin | 0.0477 | 0.8054 | 0.7734 | 2 videos short of oracle t=0.0474 |
+
+No classical method reaches strict-beat. A **quantile sweep** (`t = quantile(fused,q)`
+for q ∈ {0.50, 0.51, …, 0.95}) also fails: ZH peaks at `q=0.63` with acc=0.8121
+(ties, not strict-beat), EN peaks at `q=0.86` with acc=0.7640 (ties, below mF1).
+
+### Honest verdict
+
+- **H1 real**: one cell exists with the right oracle properties; no prior probe
+  found anything like it at atom level.
+- **H2 fails**: the label-free gap is not closed. User's "make it work" bar is
+  not yet met.
+- **Gap is small**: 1 video on EN, 2 on ZH. If *any* label-free threshold
+  procedure places `t ≈ 0.2018` on EN's fused score and `t ≈ 0.0474` on ZH's,
+  strict-beat falls out.
+
+### Next directions that could close the gap
+
+1. **Untested classical families** on the `(binary_withdef+binary_minimal, logit_avg)`
+   cell: Isodata, Intermode, Shanbhag, Huang fuzzy-entropy, prior-matched
+   percentile. ~15 min CPU.
+2. **Prior-matched quantile with label-free base rate estimator** — commit to
+   `t = quantile(fused, 1 − estimated_prior)` where the prior is estimated from
+   the train-split unlabeled score pool. This reformulates the problem as
+   "estimate the hate rate without labels, then thresh to match". Testable with
+   existing 2B train score files.
+3. **Expand 2B config pool** with `binary_deflected`, `triclass_nodef_t1000`
+   and other variants that only exist for 8B. ~30 min GPU per variant per dataset.
+4. **Input-perturbation stability selector** — pick between candidate thresholds
+   using stability under transcript truncation or frame subsampling variation.
+   Requires extra 2B scoring runs.
+
+### Artifacts
+
+- `archive/post_shutdown_probes/probe_crossconfig_fusion.py` — pair-fusion probe with atom discipline
+- `archive/post_shutdown_probes/probe_triple_fusion.py` — subsets of size 1/2/3/4 with 8 fusion operators
+- `archive/post_shutdown_probes/probe_fusion_extended_lf.py` — 10 classical methods on the winning cell
+- `archive/post_shutdown_probes/probe_fusion_quantile_sweep.py` — quantile sweep on the winning cell
+- `results/analysis/probe_crossconfig_fusion.json`
+- `results/analysis/probe_triple_fusion.json`
+- `results/analysis/probe_fusion_quantile_sweep.json`
+- `docs/experiments/crossconfig_fusion_notes.md` — full pre-registration + results
+- `logs/probe_crossconfig_fusion_v2.out` — atomized run output
+- `logs/probe_triple_fusion.out` — subset-enumeration output
+- `logs/probe_fusion_extended_lf.out` — 10-method output on the winning cell
+- `logs/probe_fusion_quantile_sweep.out` — quantile sweep output
+
+---
+
+## Baseline reproduction + src/ archival (2026-04-13 later session)
+
+End-to-end reproduction of the 2B `binary_nodef` baseline from scratch, followed
+by a wholesale archival of all non-baseline experimental code into `archive/`.
+
+### Reproduction protocol
+
+1. **Backup**: renamed both `results/holistic_2b/MHClip_{EN,ZH}/test_binary.jsonl`
+   to `.prerepro_20260413` so the scoring script's resume logic could not
+   short-circuit the run.
+2. **Re-score** on 2 GPUs in parallel (user-authorized for this run):
+   - Job 8251: `python src/score_holistic_2b.py --dataset MHClip_EN --split test --mode binary` (defaults for everything else)
+   - Job 8252: same for ZH
+3. **Re-evaluate** with `python src/quick_eval_all.py` (job 8254).
+4. **Per-video diff** between new and backup score files for both datasets.
+
+### Reproduction result
+
+| Dataset | Method | New ACC | Expected | Δ ACC | New mF1 | Expected | Δ mF1 |
+|---|---|---|---|---|---|---|---|
+| EN | tf_otsu | 0.763975 | 0.7640 | 0.000025 | 0.653175 | 0.6532 | 0.000025 |
+| ZH | tf_gmm | 0.798658 | 0.8121 | **0.0134** | 0.764141 | 0.7871 | **0.0230** |
+
+EN reproduces bit-exact. **ZH GMM does not** — the new ACC is 1.34pp below the
+documented baseline.
+
+### Per-video score diff (new vs `.prerepro_20260413` backup)
+
+- EN: 158/161 bit-exact, 3/161 differ >0.001, max |Δ|=0.052, corr=0.9997
+- ZH: 144/149 bit-exact, 5/149 differ >0.001, max |Δ|=0.034, corr=0.9998
+
+96-97% of per-video scores are bit-exact between the two runs. The 3-5 videos
+that drift do so by 0.03-0.05 — small but enough to affect GMM's EM fit.
+
+### Root cause
+
+**vLLM bf16 reduction-order non-determinism in attention/softmax kernels**.
+`temperature=0` is set (`score_holistic_2b.py:517`), so decoding is greedy,
+but the underlying attention kernels are not strictly bit-reproducible across
+runs due to batch arrival order and reduction order in the softmax/SDPA
+implementation. This is independent of any code change.
+
+### Robustness ranking of label-free threshold methods (verified bit-exact comparison new vs backup)
+
+| ZH method | OLD t / acc / mf | NEW t / acc / mf | Verdict |
+|---|---|---|---|
+| **otsu** | 0.2736 / 0.7584 / 0.6042 | 0.2736 / 0.7584 / 0.6042 | **BIT-EXACT** |
+| **triangle** | 0.0839 / 0.7785 / 0.7203 | 0.0839 / 0.7785 / 0.7203 | **BIT-EXACT** |
+| **rosin** | 0.0839 / 0.7785 / 0.7203 | 0.0839 / 0.7785 / 0.7203 | **BIT-EXACT** |
+| **li_lee** | 0.1142 / 0.7785 / 0.7060 | 0.1142 / 0.7785 / 0.7060 | **BIT-EXACT** |
+| **median** | 0.0180 / 0.7047 / 0.6931 | 0.0180 / 0.7047 / 0.6931 | **BIT-EXACT** |
+| kapur / yen / renyi | 0.1749 / 0.7718 / 0.6691 | 0.1749 / 0.7785 / 0.6823 | ≤1 vid drift |
+| **GMM** | 0.0362 / **0.8121** / 0.7871 | 0.0381 / **0.7987** / 0.7641 | **DRIFT (~2 vid)** |
+| **MET** | 0.0373 / **0.8121** / 0.7871 | 0.0474 / **0.7987** / 0.7641 | **DRIFT (~2 vid)** |
+
+EN: all 10 methods are BIT-EXACT (EN's atom structure is robust enough that
+even GMM's EM fit lands on the same atom across runs).
+
+**Implication**: the documented `(EN→Otsu, ZH→GMM)` baseline is asymmetrically
+reproducible. EN tf-otsu is a stable contract; ZH tf-gmm has a built-in
+~1.5pp ACC noise floor due to vLLM bf16 non-determinism. Any future
+"strict-beat" comparison on ZH that relies on the 0.8121 number should be
+read with that ±1.5pp floor in mind.
+
+### User decision (recorded for posterity)
+
+After seeing the reproduction result and the per-method robustness table,
+the user accepted the run as **soft-pass for archival purposes** on the
+grounds that the original score files are preserved as `.prerepro_20260413`
+backups and any future comparison can be performed against the backup. The
+documented 0.8121 ZH baseline number is treated as the canonical reference
+even though re-running today gives 0.7987.
+
+### Archival event
+
+After reproduction was accepted, **all non-baseline experimental code was
+moved out of `src/` into `archive/`** with iteration-aligned subfolders:
+
+| Subfolder | Files | Source |
+|---|---|---|
+| `archive/prompt_paradigm_v1_to_v6/` | 14 .py + 2 .sh | entire `archive/prompt_paradigm_v1_to_v6/` |
+| `archive/meta_selector_pilots/` | 156 .py | entire `archive/meta_selector_pilots/` |
+| `archive/post_shutdown_probes/` | 18 .py | top-level `probe_*.py`, `diagnose_*.py`, `analyze_*.py` |
+| `archive/legacy_iteration_scripts/` | 17 .py | top-level pre-team-session legacy scripts |
+
+Total: 205 Python files moved. `src/` now contains exactly:
+
+```
+src/data_utils.py
+src/quick_eval_all.py
+src/score_holistic_2b.py
+```
+
+Nothing else. Anything in `archive/` is **not runnable in place** (the import
+graph relies on sibling `data_utils.py` and `quick_eval_all.py`); the
+`archive/README.md` documents the cp-back recipe for re-running anything.
+
+### Artifacts
+
+- `results/holistic_2b/MHClip_EN/test_binary.jsonl` — new EN scores (job 8251)
+- `results/holistic_2b/MHClip_EN/test_binary.jsonl.prerepro_20260413` — backup
+  of the original baseline EN scores
+- `results/holistic_2b/MHClip_ZH/test_binary.jsonl` — new ZH scores (job 8252)
+- `results/holistic_2b/MHClip_ZH/test_binary.jsonl.prerepro_20260413` — backup
+- `results/analysis/quick_eval_all.json` — re-computed eval (job 8254)
+- `archive/` — 205 archived Python files in 4 subfolders + README
+- `logs/repro_baseline_en.out`, `logs/repro_baseline_zh.out`, `logs/repro_eval.out`

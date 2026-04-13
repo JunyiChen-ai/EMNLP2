@@ -1,5 +1,14 @@
 # prompt_paradigm v6 — Coarse Axes Prompt (CAP)
 
+> **POST-HOC CORRECTION NOTICE (2026-04-13 later session, root-cause pass)**: this
+> proposal cites "v3 p_evidence ZH 0.8188" as a prior-art target. The root cause is
+> NOT an atom-level phantom — v3's `polarity_calibration.py:83` deleted the sentence
+> `"You are a content moderation analyst."` from the user message, so v3 Call 1 is
+> scored on a different prompt. 78% of EN videos and 73% of ZH videos differ from
+> baseline (max |Δ|=0.2151). Clauses P2 and Ablation B here are against a shifted-
+> prompt target, not a perturbation of baseline. See STATE_ARCHIVE §"v3 p_evidence
+> row correction".
+
 **Author:** prompt-paradigm (Teammate A)
 **Date:** 2026-04-13
 **Status:** Gate 1 PROPOSAL — awaiting team-lead approval

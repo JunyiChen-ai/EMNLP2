@@ -1,5 +1,23 @@
 # prompt_paradigm — Slurm run log
 
+> **CORRECTION NOTICE (2026-04-13 later session, root-cause pass)**
+>
+> Multiple entries below (v4, v5, v6 in particular) cite "v3 p_evidence ZH oracle 0.8188"
+> as a prior-art strict-beat target. **The root cause is NOT a sub-atom FP phantom** (my
+> first correction was wrong). The real root cause: v3's `polarity_calibration.py:83`
+> uses a user message that has the sentence `"You are a content moderation analyst."`
+> DELETED from the start. Baseline's `BINARY_PROMPT` in `score_holistic_2b.py:52` starts
+> with that sentence. The 45-character deletion shifts 78% of EN videos and 73% of ZH
+> videos, max single-video score drift 0.2151, baseline-vs-p_evidence correlation 0.96/0.98.
+> v3 p_evidence is therefore **not a re-scoring of baseline** — it is a **different
+> prompt**. All "v3 p_evidence vs baseline" comparisons in v4/v5/v6 were comparing two
+> different prompts without noticing. Under classical label-free methods on the shifted-
+> prompt score file itself: EN tf_otsu 0.7516, tf_gmm 0.7081; ZH tf_otsu 0.7517, tf_gmm
+> 0.7987 — **all below baseline on both datasets**. v3's own Ablation A integrity check
+> ("A reproduces baseline within FP tolerance") was silently violated. Side-finding: v3
+> p_evidence is effectively an unregistered 7th prompt config. See STATE_ARCHIVE
+> §"v3 p_evidence row correction" for the full numbers.
+
 Owner: prompt-paradigm (Teammate A). All jobs submitted one-at-a-time, max 2 concurrent,
 no --dependency, no &, no scancel of foreign jobs. Each entry: job ID, command, expected
 runtime, status, observed runtime, output path.
@@ -105,3 +123,5 @@ sbatch --cpus-per-task=2 --mem=4G --wrap "source /data/jehc223/home/miniconda3/e
 - v6 runner W3 train/axes: MHClip_ZH/train/axes job 8209
 - v6 runner W4 train/control: MHClip_EN/train/control job 8211
 - v6 runner W4 train/control: MHClip_ZH/train/control job 8212
+- v6 runner W5 eval: job 8220
+- v6 runner finished 2026-04-13 17:00:56
