@@ -51,8 +51,9 @@ decoding — just "ask and parse the text answer"?
   `startswith("no")` → 0, else → -1 (unparseable).
 
 **Hypothesis** (before running): 2B will refuse to predict positive most
-of the time due to safety alignment conservatism → high negative-class
-bias → low mF1 but middling accuracy.
+of the time under this framing → high negative-class bias → low mF1 but
+middling accuracy. This is an empirical prediction about the
+prompt-framing's observed P(Yes) compression, not a claim about training.
 
 ### Execution
 

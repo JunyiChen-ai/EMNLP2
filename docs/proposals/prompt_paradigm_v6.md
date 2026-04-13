@@ -135,7 +135,7 @@ Before the full pipeline, a 10-video pilot on EN test (same pattern as v5 pilot)
 - W3 eval: ~5 minutes.
 - **Total: ~3 hours.** Within v5 budget.
 
-Trade-off: running the control adds ~50% wall-clock over v5. If team-lead prefers to skip the control, I can merge clauses A and C by requiring v6 to strict-beat the known-winners-baseline-and-v3-prior-art suite AND re-test on a different model (e.g., swapping the 8B safety-asymmetry result as an implicit control). But I do not recommend dropping the control — clause C is the cleanest AP2 defense, and the prompt-length-only null is the most plausible confounder to rule out.
+Trade-off: running the control adds ~50% wall-clock over v5. If team-lead prefers to skip the control, I can merge clauses A and C by requiring v6 to strict-beat the known-winners-baseline-and-v3-prior-art suite AND re-test on a different model (e.g., swapping the 8B prompt-polarity-asymmetry result as an implicit control). But I do not recommend dropping the control — clause C is the cleanest AP2 defense, and the prompt-length-only null is the most plausible confounder to rule out.
 
 ---
 

@@ -9,7 +9,7 @@ The frozen 2B `binary_nodef` baseline produces per-video "hate probability" scor
 | MHClip_EN | 0.032 | 0.026 | 0.286 | 0.210 | **0.101** |
 | MHClip_ZH | 0.011 | 0.010 | 0.169 | 0.186 | **0.063** |
 
-Although both datasets have a tight low mode, **EN's low mode is ~60% wider** (0.026 vs 0.010) relative to the inter-mode gap. This reflects a concrete property of the front half: on English content, the 2B MLLM gives non-trivial probability mass to RLHF-style "caution markers" (phrases like "this could be offensive", "may be interpreted as") even on clearly benign videos, smearing the benign cluster upward. On Chinese content the same model produces near-zero probabilities on benign videos because the English-centric RLHF signal does not fire. The downstream consequence is that EN has a large ambiguous band between ~0.1 and ~0.3 where benign-upper-tail and hateful-lower-tail overlap, while ZH has a clean gap.
+Although both datasets have a tight low mode, **EN's low mode is ~60% wider** (0.026 vs 0.010) relative to the inter-mode gap. This reflects an empirical property of the front half: on English content, the 2B MLLM gives non-trivial probability mass to "caution-flavored" tokens (e.g. phrases like "this could be offensive", "may be interpreted as") even on clearly benign videos, smearing the benign cluster upward. On Chinese content the same model produces near-zero probabilities on benign videos. The downstream consequence is that EN has a large ambiguous band between ~0.1 and ~0.3 where benign-upper-tail and hateful-lower-tail overlap, while ZH has a clean gap. No causal claim about training is made.
 
 Empirically this is exactly why the frozen baseline's two best numbers use **different methods** per dataset:
 - EN 76.40% uses Otsu (cuts at 0.273, well into the ambiguous band)
@@ -28,7 +28,7 @@ We propose a fully-unsupervised selector that, given only the unlabeled pool U =
    - If R < τ: the low mode is a sharply-contained benign cluster and the high mode is the hateful-plus-noise tail → use a **prior-quantile rule**: sort U and threshold at the (1 − π_hi)-th quantile, where π_hi is the GMM-weight of the high component. This is equivalent to the Bayes-optimal threshold under the clean-cluster regime and is strictly tighter than posterior-0.5 GMM in exactly the regime we need.
 
 **Why this mechanism is the right one for hateful-video detection**: the two candidates correspond to two qualitatively different failure modes of a single-call MLLM judge on multimodal hate content.
-- *Under Otsu regime*: the MLLM's benign class is noisy — there is no sharp cut at the low tail, so we minimize within-class variance and accept a conservative cut. This matches moderation settings where the MLLM hedges on benign-adjacent content (the EN case — a **language-specific overrefusal artifact** documented in our iteration 2 analysis).
+- *Under Otsu regime*: the MLLM's benign class is noisy — there is no sharp cut at the low tail, so we minimize within-class variance and accept a conservative cut. This matches moderation settings where the MLLM hedges on benign-adjacent content (the EN case — a **language-specific empirical hedging pattern** observed in our iteration 2 analysis).
 - *Under prior-quantile regime*: the MLLM's benign class is crisp — the low mode is effectively a delta at zero and any score above a few low-σ's represents real uncertainty that should be flagged. We take the top-π_hi fraction, where π_hi is estimated from the GMM weights (matching the model's own implied prior).
 
 ## 3. Prediction

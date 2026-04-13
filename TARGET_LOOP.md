@@ -337,17 +337,17 @@ Critical metric: EN AUC-ROC. If > 0.825, unified method possible.
 
 ### Scientific Story (4-point)
 
-**Phenomenon**: Safety-aligned MLLMs exhibit asymmetric confidence on harm-assessment questions. When asked "Does X violate policy?", RLHF safety training creates a conservative prior toward "No" (the model avoids affirmative harm claims). For hateful video detection, this manifests as score compression: even genuinely hateful content receives low P(Yes) scores (EN positive median = 0.119), making positive/negative class overlap severe (EN AUC = 0.725).
+**Phenomenon**: Empirically, MLLMs exhibit asymmetric confidence on harm-assessment questions. When asked "Does X violate policy?", P(Yes) is compressed toward zero even for genuinely hateful content (EN positive median = 0.119), making positive/negative class overlap severe (EN AUC = 0.725). This is an observed prompt-framing effect; no causal attribution to training is claimed.
 
-**Mechanism**: Prompt deflection inverts the question from "Does this video violate any of the above rules?" to "Is this video fully consistent with all of the above community guidelines?" Under deflection, P(Yes) = benign and P(No) = potentially hateful. The hate score becomes P(No)/(P(Yes)+P(No)) = 1 - original_score_formula. The safety prior that previously suppressed violation detection now helps: the model's reluctance to affirmatively claim "Yes, this is consistent" for borderline content (because asserting consistency is a commitment) translates into higher P(No) = higher hate scores for those borderline cases. Critically, this is NOT a monotonic transform of the original scores — the model's internal processing changes with the prompt, potentially producing a different ranking.
+**Mechanism**: Prompt deflection inverts the question from "Does this video violate any of the above rules?" to "Is this video fully consistent with all of the above community guidelines?" Under deflection, P(Yes) = benign and P(No) = potentially hateful. The hate score becomes P(No)/(P(Yes)+P(No)) = 1 - original_score_formula. Critically, this is NOT a monotonic transform of the original scores — the model's internal processing changes with the prompt, potentially producing a different ranking.
 
 **Prediction**: 
 - Content-free P(Yes|"consistent?", blank) should be >0.5 (blank is consistent)
 - AUC-ROC under deflected prompt should exceed AUC under original prompt
 - The improvement should concentrate in the borderline score zone (original scores 0.1-0.3)
-- If AUC does NOT improve, the bottleneck is genuine model inability, not safety alignment
+- If AUC does NOT improve, the bottleneck is prompt-framing-invariant and reflects genuine model inability
 
-**Counterfactual ablation**: If deflection is just the logical complement (1 - original score), AUC would be identical. Any AUC difference proves the model treats the two framings non-equivalently, confirming the safety alignment asymmetry.
+**Counterfactual ablation**: If deflection is just the logical complement (1 - original score), AUC would be identical. Any AUC difference proves the model treats the two framings non-equivalently, confirming the empirical prompt-polarity asymmetry.
 
 ### Implementation
 
@@ -362,7 +362,7 @@ Minimal change to `score_holistic_2b.py`:
 - Multimodal input: PASS (same video + text)
 - No ensemble: PASS (single call, different prompt)
 - No external data: PASS
-- Scientific story: PASS (safety alignment asymmetry specific to hate detection)
+- Scientific story: PASS (empirical prompt-polarity asymmetry on hate-assessment questions)
 
 ---
 
@@ -373,7 +373,7 @@ Minimal change to `score_holistic_2b.py`:
 **Phenomenon**: Holistic hate detection conflates two cognitively distinct tasks — perceiving multimodal content and reasoning about policy violations — into a single MLLM call. This conflation forces the model to compress perception and judgment into a single P(Yes) token probability, losing information at the bottleneck. Hateful video compounds this problem because the relevant cues are often implicit (irony, juxtaposition, coded language) and require explicit articulation to reason about.
 
 **Mechanism**: Separate the pipeline into two calls with distinct named roles:
-- **Observe (O)**: Multimodal call. "Describe any content relevant to hate speech evaluation." The model externalizes its perceptual understanding as text, bypassing the Yes/No bottleneck. Safety alignment doesn't suppress description (describing is not accusing).
+- **Observe (O)**: Multimodal call. "Describe any content relevant to hate speech evaluation." The model externalizes its perceptual understanding as text, bypassing the Yes/No bottleneck. Descriptive outputs are not subject to the same P(Yes) compression as Yes/No judgments.
 - **Judge (J)**: Text-only call. Given observation text + rules, "Does this violate any rules? Yes/No." The model reasons over explicit textual evidence, not ambiguous visual input. Text-based judgment is the MLLM's strongest modality.
 
 **Prediction**:

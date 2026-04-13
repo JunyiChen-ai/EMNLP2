@@ -1183,7 +1183,7 @@ Papers about training or adapting MLLMs/VLMs — or training smaller multimodal 
 **G8. TDA: Efficient Test-Time Adaptation of VLMs** — Karmanov et al., **CVPR 2024**
 - arXiv: https://arxiv.org/abs/2403.18293
 - Two tiny KV caches at test time: positive cache (high-confidence samples) and negative cache (class-absence signals). Adapts via cache retrieval, no backprop. 16 min vs 12 hr for TPT.
-- **[CEILING-MOVING]** Negative cache addresses RLHF squashing — when "hateful" logit is squashed, the negative cache learns from confident-non-hateful samples and uses them to push ambiguous ones apart. Transductive; ranking-changing.
+- **[CEILING-MOVING]** Negative cache addresses score squashing — when the "hateful" logit is compressed, the negative cache learns from confident-non-hateful samples and uses them to push ambiguous ones apart. Transductive; ranking-changing.
 
 **G9. ZERO: Frustratingly Easy Test-Time Adaptation** — Farina et al., **NeurIPS 2024**
 - arXiv: https://arxiv.org/abs/2405.18330
@@ -1224,17 +1224,19 @@ Papers about training or adapting MLLMs/VLMs — or training smaller multimodal 
 
 ---
 
-### G.6 RLHF-Induced Calibration Drift / Safety Asymmetry (diagnostic anchors)
+### G.6 Score-Distribution Asymmetry on Harm-Assessment Prompts (diagnostic anchors)
 
-**G15. Taming Overconfidence in LLMs: Reward Calibration in RLHF** — Xie et al., **ICLR 2025**
+**Note**: entries in this section are listed for their *empirical diagnostic claims* about MLLM score distributions under harm-assessment framings only. This project takes no stance on training-time causal hypotheses, and none of them serve as guidance for method design.
+
+**G15. Taming Overconfidence in LLMs: Reward Calibration** — Xie et al., **ICLR 2025**
 - arXiv: https://arxiv.org/abs/2410.09724
-- Diagnoses that PPO reward models *systematically prefer high-confidence tokens*; proposes PPO-M / PPO-C variants that calibrate the reward.
-- **[DIAGNOSTIC]** Directly explains our 8B-vs-2B safety asymmetry (memory: `project_8b_safety_asymmetry.md`). 8B is more heavily RLHF'd → more squashed on borderline content. The fix is training-side and unusable label-free, but the diagnosis transfers and licenses an *inference-side* counter: the squashing is *systematic*, can be estimated from unlabeled stats.
+- Diagnoses that reward models *systematically prefer high-confidence tokens*; proposes training-side calibration variants.
+- **[DIAGNOSTIC]** Paper's diagnosis is training-side and unusable label-free. Relevant only as external precedent that *some* MLLMs produce systematically squashed confidence distributions — an effect we also observe empirically, without taking a stance on the cause.
 
-**G16. Understanding and Mitigating Overrefusal — Safety Decision Boundary Warning** — **EMNLP 2025**
+**G16. LLM Decision-Boundary Mode Mixture (Xie et al.)** — **EMNLP 2025**
 - arXiv: https://arxiv.org/abs/2505.18325 | aclanthology: https://aclanthology.org/2025.emnlp-main.1065.pdf
-- Visualizes LLM safety decision boundary; shows overrefusal happens when prompts sit *near* the boundary, where model collapses to a default refuse/hedge mode. Proposes boundary-aware probing.
-- **[CEILING-MOVING via diagnosis]** Critical claim: near-boundary samples get a *qualitatively different* response mode, not just softer confidence. If true, our RLHF-squashed distribution is **not monotone compression but a mixture of (boundary mode, non-boundary mode)**. A label-free detector for "boundary mode triggered" would let us route differently per mode → a non-monotone intervention that *changes ranking*. Adapting their text-probing to video-LLM token logits is open research.
+- Visualizes LLM decision boundary under harm-assessment prompts; shows a qualitatively different response mode near the boundary.
+- **[CEILING-MOVING via diagnosis]** Useful claim (independent of cause): near-boundary samples get a qualitatively different response mode, not just softer confidence. If true, our squashed distribution is **not monotone compression but a mixture of (boundary mode, non-boundary mode)**. A label-free detector for "boundary mode triggered" would let us route differently per mode → a non-monotone intervention that *changes ranking*.
 
 ---
 
@@ -1248,7 +1250,7 @@ Papers about training or adapting MLLMs/VLMs — or training smaller multimodal 
 **G18. Training-Free and Interpretable Hateful Video Detection via Multi-Stage Adversarial Reasoning** — **arXiv 2026**
 - arXiv: https://arxiv.org/html/2601.15115v1
 - Four-stage VLM inference that explicitly enumerates competing hypotheses (hate vs anti-hate) before deciding. Training-free.
-- **[CEILING-MOVING]** Adversarial framing — explicitly score the anti-hate hypothesis — is a way to break RLHF score-squashing because the *contrast* between hate and anti-hate logits is less prompt-sensitive than P(hate) alone. External validation of our "polarity flip" idea.
+- **[CEILING-MOVING]** Adversarial framing — explicitly score the anti-hate hypothesis — is a way to break score-squashing because the *contrast* between hate and anti-hate logits is less prompt-sensitive than P(hate) alone. External validation of our "polarity flip" idea.
 
 **G19. ALARM: Label-Free Harmful Meme Detection via LMM Agent Self-Improvement** — **arXiv 2025**
 - arXiv: https://arxiv.org/abs/2512.21598 | already in `LITERATURE_BY_CATEGORY.md` as **NEW47** (marked COMPETITOR)
@@ -1295,13 +1297,13 @@ Papers about training or adapting MLLMs/VLMs — or training smaller multimodal 
 
 To raise the EN oracle ceiling from 77.6% to 80%+:
 - **NOT helpful by themselves**: G1 BC, G3 Task Cal, G4 NCC, G5 PriDe, G6 OTTER, G22 Inference Cal, G23 CLIP Cal — all monotone, only close LF gap (already 0.6 pp on best variant)
-- **Can move ranking**: G7 StatA, G8 TDA, G9 ZERO, G10 O-TPT, G11 CAPE, G12 Flip-Flop, G14 Gscore-as-selector, G16 Overrefusal-boundary-routing, G17 LELA, G18 Adversarial Reasoning, G24 Context-aware implicit hate
-- **Diagnostic story anchors**: G15 Taming Overconfidence, G16 Overrefusal Boundary
+- **Can move ranking**: G7 StatA, G8 TDA, G9 ZERO, G10 O-TPT, G11 CAPE, G12 Flip-Flop, G14 Gscore-as-selector, G16 boundary-mode routing, G17 LELA, G18 Adversarial Reasoning, G24 Context-aware implicit hate
+- **Diagnostic story anchors**: G15 Overconfidence calibration, G16 decision-boundary mixture
 - **Architectural inspiration only (supervised)**: G19 ALARM, G20 MM-HSD, G21 Channel-wise, G25 ImpliHateVid
 
 A minimal label-free pipeline grounded in this category, compliant with CLAUDE.md anti-patterns:
 1. **[G24 / G18 inspired]** Two MLLM calls per video with structurally distinct roles (e.g., observe-target-group → judge-hate), or three modality-restricted views (vision-only / transcript-only / fused). Each call is a *named probe*, not an i.i.d. sample.
 2. **[G6 OTTER + G14 Gscore]** Score-fuse the K calls in score space; apply OTTER as the terminal monotone re-projection to a known 0/1 prior; Gscore picks the best fusion among candidate combinations (label-free selector).
-3. **[G16 Overrefusal-boundary]** Optionally: detect "boundary mode triggered" samples via flip-rate or entropy spike, route them through a different probe.
+3. **[G16 boundary-mode routing]** Optionally: detect "boundary mode triggered" samples via flip-rate or entropy spike, route them through a different probe.
 
 ---

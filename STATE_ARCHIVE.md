@@ -252,11 +252,11 @@ Best single-dataset results (NOT unified):
 | 2B | ZH | 0.8479 | 81.21% | 81.21% (GMM) |
 | 8B | ZH | 0.8750 | 81.88% | 81.88% (Otsu) |
 
-**Key finding**: 8B is WORSE than 2B on EN despite marginally better AUC. The 8B model's RLHF alignment makes it overconfident in both directions — pushing ambiguous scores to extremes. 25/49 EN positives score <0.01 on 8B.
+**Key finding**: 8B is WORSE than 2B on EN despite marginally better AUC. The 8B model's score distribution is more polarized — pushing ambiguous scores to extremes. 25/49 EN positives score <0.01 on 8B.
 
 ### Root Cause Analysis: Why EN Fails
 
-1. **Safety alignment token suppression**: The "Does this video violate rules?" framing triggers RLHF safety training, systematically suppressing P(Yes). Stronger on 8B than 2B.
+1. **Prompt-framing P(Yes) suppression**: Under the "Does this video violate rules?" framing, P(Yes) is systematically compressed toward zero. Empirically stronger on 8B than 2B. No causal attribution claimed.
 2. **"Sensitive ≠ Hateful" conflation**: 8B flags educational/news content about LGBTQ, disability as hateful (FP), while missing implicit hate/mockery (FN).
 3. **Offensive class is the gap**: 25/34 EN false negatives are Offensive (not Hateful). The model recognizes Hateful content but misses borderline Offensive content.
 4. **Score compression**: EN positive mean P(Yes) = 0.22 (2B) / 0.15 (8B) — far too low. ZH positive mean = 0.19 (2B) / 0.27 (8B) — higher because ZH hate is more explicit.
@@ -275,7 +275,7 @@ Best single-dataset results (NOT unified):
 - **DACA** (NeurIPS 2025): Disagreement between base/instruct models for unsupervised calibration
 - **OPRO** (ICLR 2024): LLM as optimizer for prompt search
 - **Entropy-guided prompt weighting** (ICASSP 2026): Low-entropy prompts ranked higher
-- **Safety alignment asymmetry literature**: RLHF overrefusal, prompt polarity effects
+- **Prompt polarity asymmetry**: empirical prompt-framing effects on Yes/No-token probabilities
 
 ---
 
@@ -286,7 +286,7 @@ Best single-dataset results (NOT unified):
 | 8B Original | 0.7482 | 74.53% | 0.8750 | 81.88% |
 | 8B Deflected | 0.7589 | 72.67% | 0.8722 | 81.88% |
 
-**Conclusion**: Deflection rescues collapsed positives but inflates FP. AUC unchanged. Single Yes/No token prob cannot separate EN at >80% regardless of prompt framing. Bottleneck is discriminative ability, not safety suppression.
+**Conclusion**: Deflection rescues collapsed positives but inflates FP. AUC unchanged. Single Yes/No token prob cannot separate EN at >80% regardless of prompt framing. Bottleneck is discriminative ability, not prompt-framing bias.
 
 **Result files:**
 - `results/holistic_8b/MHClip_EN/test_binary_deflected.jsonl` (161 records)
@@ -303,7 +303,7 @@ Two MLLM calls with distinct roles: (1) multimodal free-text observation, (2) te
 | EN | 0.746 | 0.748 | -0.002 |
 | ZH | 0.845 | 0.875 | -0.030 |
 
-**Diagnosis**: Observer self-censors (sanitizes borderline content due to safety alignment), judge inherits same conservative bias. Observation text features (length, hate keyword count) have AUC ~0.55 — essentially random. The bottleneck is NOT perception/judgment conflation — it's the MLLM's fundamental reluctance to flag content.
+**Diagnosis**: Observer sanitizes borderline content in its free-text description; judge inherits the same conservative output distribution. Observation text features (length, hate keyword count) have AUC ~0.55 — essentially random. The bottleneck is NOT perception/judgment conflation — it's the MLLM's fundamental reluctance to flag content.
 
 **Result files**: `results/otj_8b/`
 
@@ -382,13 +382,13 @@ EN full test set has 39/182 videos with missing media files (12 Normal, 7 Offens
 
 ## Original planned Iteration 2 (now superseded by findings above)
 
-**Hypothesis**: The "violates rules?" framing triggers safety alignment token suppression. Inverting the polarity to "Is this video fully consistent with community guidelines?" (where hate_score = P(No)) should sidestep this compression.
+**Hypothesis**: The "violates rules?" framing produces heavily compressed P(Yes). Inverting the polarity to "Is this video fully consistent with community guidelines?" (where hate_score = P(No)) should sidestep this compression.
 
 **4-point story**:
-- *Phenomenon*: RLHF-aligned MLLMs suppress P(Yes) for harm-affirming questions. This is measurable: p_base for "violates rules?" is 0.0004 (8B), meaning the model defaults to "No" with 99.96% confidence before seeing any content.
-- *Mechanism*: Deflected prompt inverts the question polarity. P(No|"consistent with guidelines?") extracts the same signal but from the opposite token, which is NOT suppressed by safety alignment.
+- *Phenomenon*: Empirically, MLLMs emit near-zero P(Yes) for harm-affirming framings. Measurable: p_base for "violates rules?" is 0.0004 (8B), meaning the model defaults to "No" with 99.96% confidence before seeing any content. No causal attribution.
+- *Mechanism*: Deflected prompt inverts the question polarity. P(No|"consistent with guidelines?") extracts the same signal but from the opposite token, which does not exhibit the same compression.
 - *Prediction*: Deflected prompt should increase P(positive) for hateful videos while maintaining low P(positive) for normal videos, improving AUC and enabling unsupervised threshold to reach >80%.
-- *Counterfactual*: If deflected prompt has same AUC as original, the bottleneck is not safety alignment but the model's actual inability to distinguish hateful content.
+- *Counterfactual*: If deflected prompt has same AUC as original, the bottleneck is prompt-framing-invariant and reflects the model's actual inability to distinguish hateful content.
 
 **Backup: Iteration 3 — Observe-then-Judge**
 Two calls per video with distinct roles:
