@@ -6,10 +6,16 @@ reproduction of the 2B `binary_nodef` baseline confirmed that the only
 files actually needed by the baseline command are:
 
 ```
-src/data_utils.py
-src/quick_eval_all.py
-src/score_holistic_2b.py
+src/baseline/data_utils.py
+src/baseline/quick_eval_all.py
+src/baseline/score_holistic_2b.py
 ```
+
+(The 3 baseline files were relocated from top-level `src/` into a
+`src/baseline/` subfolder on 2026-04-13 later that same day, to isolate
+frozen baseline code from new experiment subfolders like
+`src/naive_baseline/` and `src/mars_repro/`. Nothing about the archive's
+own contents changed in that relocation.)
 
 Everything else under `src/` was experimental code from earlier iterations,
 prompt-paradigm v1-v6, ~120 meta-selector pilots, post-shutdown diagnostic
@@ -35,22 +41,22 @@ Archived scripts are **NOT runnable in place**. They all do
 those modules live in the same directory (they're loaded via
 `sys.path.insert(0, os.path.dirname(__file__))` at the top of each script).
 Once moved into `archive/<subdir>/`, the import path is broken because
-`data_utils.py` and `quick_eval_all.py` stay in `src/`.
+`data_utils.py` and `quick_eval_all.py` now live in `src/baseline/`.
 
 To re-run any single archived script:
 
 ```bash
-cp archive/<subdir>/<script>.py src/
-python src/<script>.py [args ...]
+cp archive/<subdir>/<script>.py src/baseline/
+python src/baseline/<script>.py [args ...]
 ```
 
-After the run, you can delete the copy from `src/` to keep it clean. Do
-**not** edit the archived copies — they are historical artifacts.
+After the run, you can delete the copy from `src/baseline/` to keep it
+clean. Do **not** edit the archived copies — they are historical artifacts.
 
 For multi-file groups (e.g., the prompt_paradigm v1-v6 evaluators which
 import from each other), copy the whole `prompt_paradigm_v1_to_v6/`
-directory into `src/` as `src/prompt_paradigm/` to restore the original
-package layout.
+directory into `src/baseline/` as `src/baseline/prompt_paradigm/` to
+restore the original package layout.
 
 ## Why archived
 
@@ -66,7 +72,7 @@ package layout.
   fusion oracle finding, the v3 p_evidence prompt-drift root-cause.
   None produced a passing label-free method.
 - **legacy_iteration_scripts**: pre-team-session iterations 0-3. Replaced
-  by the holistic baseline that's now in `src/score_holistic_2b.py`.
+  by the holistic baseline that's now in `src/baseline/score_holistic_2b.py`.
 
 ## Pointer to the narrative
 

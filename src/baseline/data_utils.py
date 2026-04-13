@@ -22,13 +22,40 @@ MP4_SUBDIRS = {
     "HateMM": "video",
 }
 
+# Videos to unconditionally skip across every scoring pipeline. These 8
+# MHClip_ZH mp4 files pass the `os.path.isfile` + >1000-byte check but
+# fail vLLM's Qwen3-VL video decoder ("Expected reading N frames, but
+# only loaded 0 frames from video.") — observed across our holistic-score
+# pipeline, naive 2B text, and MARS faithful on 2026-04-14. Every pipeline
+# that feeds mp4 → vLLM dies on them. Manually maintained list; add new
+# entries here when more broken videos surface.
+SKIP_VIDEOS = {
+    "MHClip_EN": set(),
+    "MHClip_ZH": {
+        "BV1Gw411E7i2",
+        "BV1Qx411V7tT",
+        "BV16N4y1q7WU",
+        "BV1nJ4m1p7BG",
+        "BV1KK411P7uJ",
+        "BV1zD4y1Y7ec",
+        "BV1du411g7tk",
+        "BV1bA41137we",
+    },
+    "HateMM": set(),
+}
+
 
 def get_media_path(vid, dataset):
     """Return (path, media_type) or None.
 
-    Checks mp4 first (must exist and be >1000 bytes), then frames dir
-    (must contain at least 1 jpg).
+    Videos in `SKIP_VIDEOS[dataset]` unconditionally return None so every
+    scoring script skips them at the top of the loop. Otherwise: check
+    mp4 first (must exist and be >1000 bytes), then fall back to
+    `frames/<vid>/*.jpg`.
     """
+    if vid in SKIP_VIDEOS.get(dataset, set()):
+        return None
+
     root = DATASET_ROOTS[dataset]
     mp4_dir = MP4_SUBDIRS[dataset]
 
