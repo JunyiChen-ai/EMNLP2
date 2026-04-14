@@ -1432,28 +1432,121 @@ candidates per dataset).
   reproducible result; rerunning the GPU rescue may give slightly
   different deltas.
 
-### Reproduction (winning Bayes-rate config)
+### End-to-end reproduction (front half + back half)
+
+The v2 boundary rescue assumes the 2B `binary_nodef` score files
+already exist. Front half = 2B scoring (one-time per dataset/split,
+GPU); back half = boundary rescue v2 itself. Both halves are listed
+here so the section is self-contained.
+
+#### Front half — 2B `binary_nodef` scoring (one GPU job per
+dataset×split, ~30-90 min each depending on dataset size)
 
 ```bash
-# 1. Pin v2 baselines
+# Test splits (used as inputs to baseline + band)
+sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=2:00:00 \
+  --output=logs/holistic_2b_MHClip_EN_test.out \
+  --wrap "source ~/miniconda3/etc/profile.d/conda.sh \
+          && conda activate SafetyContradiction \
+          && cd /data/jehc223/EMNLP2 \
+          && python src/our_method/score_holistic_2b.py \
+              --dataset MHClip_EN --mode binary --split test"
+
+sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=2:00:00 \
+  --output=logs/holistic_2b_MHClip_ZH_test.out \
+  --wrap "... && python src/our_method/score_holistic_2b.py \
+              --dataset MHClip_ZH --mode binary --split test"
+
+sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=2:00:00 \
+  --output=logs/holistic_2b_HateMM_test.out \
+  --wrap "... && python src/our_method/score_holistic_2b.py \
+              --dataset HateMM --mode binary --split test"
+
+# Train splits (only EN + ZH — needed for TR thresholds)
+# HateMM has NO train_binary.jsonl in this pipeline, by design
+# (HateMM uses TF-li_lee, not TR — the v2 baseline protocol allows
+# this asymmetry; see baseline_preds_v2.py:PROTOCOL).
+sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=2:00:00 \
+  --output=logs/holistic_2b_MHClip_EN_train.out \
+  --wrap "... && python src/our_method/score_holistic_2b.py \
+              --dataset MHClip_EN --mode binary --split train"
+
+sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=2:00:00 \
+  --output=logs/holistic_2b_MHClip_ZH_train.out \
+  --wrap "... && python src/our_method/score_holistic_2b.py \
+              --dataset MHClip_ZH --mode binary --split train"
+```
+
+Outputs (frozen, reused by everything downstream):
+- `results/holistic_2b/MHClip_EN/test_binary.jsonl` (n=161)
+- `results/holistic_2b/MHClip_ZH/test_binary.jsonl.prerepro_20260413` (n=157, **NOT** the newer test_binary.jsonl — pre-repro is the canonical reference)
+- `results/holistic_2b/HateMM/test_binary.jsonl` (n=215)
+- `results/holistic_2b/MHClip_EN/train_binary.jsonl` (n=550)
+- `results/holistic_2b/MHClip_ZH/train_binary.jsonl` (n=540 unique, 579 raw)
+
+#### Back half — Boundary rescue v2 (1 small GPU job + 3 CPU steps)
+
+```bash
+# Step 0: Pin v2 baselines (mixed TR/TF protocol)
+#   EN  -> TR-Otsu  on train_binary.jsonl
+#   ZH  -> TR-GMM   on train_binary.jsonl
+#   HM  -> TF-li_lee on test_binary.jsonl
+# Output: v2_baseline.json + baseline_preds_v2.jsonl per dataset
 python src/boundary_rescue/baseline_preds_v2.py
 
-# 2. Bayes-rate boundary band (unsupervised, parameter-free)
+# Step A: Bayes-rate boundary band — fully unsupervised, no α
+#   Fit 2-component GMM on logit(threshold-source scores) per dataset,
+#   compute analytical Bayes error rate E_bayes, select samples with
+#   err_i = min(q,1-q) > E_bayes.
+# Output: candidates_bayes_band_rate.jsonl per dataset (~80/65/78)
 python src/boundary_rescue/select_bayes_band.py --mode rate
 
-# 3. 8B rescue (1 GPU, ~15 min for ~223 candidates total)
+# Step B: 8B-judge rescue (1 GPU, ~15 min for ~223 candidates total)
+#   Qwen3-VL-8B-Instruct, no first-pass disclosure, 2-field
+#   plain-text output (rationale + verdict), temperature=0,
+#   max_tokens=2048, no logprobs. Per-dataset definition hint
+#   (HateMM strict / MHClip broader).
+# Output: rescue_8b_bayes_band_rate_v1.jsonl per dataset
 sbatch --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=1:00:00 \
   --output=logs/rescue_8b_bayes_band_rate_v1.out \
   --wrap "source ~/miniconda3/etc/profile.d/conda.sh \
           && conda activate SafetyContradiction \
+          && cd /data/jehc223/EMNLP2 \
           && python src/boundary_rescue/rescue_8b.py \
               --candidates-file candidates_bayes_band_rate.jsonl \
               --out-tag bayes_band_rate --version v1 --all"
 
-# 4. Apply G10 gating + eval
+# Step C: Apply G10 gating + eval against pinned baseline
+#   G10 = h<=1 AND (c in {1,3} OR (c==2 AND L<=90))
+# Output: test_v2_bayes_band_rate_v1_G10.jsonl per dataset
+#         appends row to loop_log_8b.jsonl
 python src/boundary_rescue/apply_and_eval_8b.py \
   --tag bayes_band_rate --version v1 --gating G10 --hedge-dict D1
 ```
+
+Expected output (the values frozen as `*_v2_winning.jsonl`):
+
+```
+=== rescue_8b bayes_band_rate version=v1 gating=G10 hedge_dict=D1 ===
+dataset               base             new      Δacc     Δmf1  beat?
+---------------------------------------------------------------------------
+MHClip_EN   0.7640/0.6532  0.7826/0.6958   +0.0186  +0.0426    YES
+MHClip_ZH   0.7919/0.7577  0.8255/0.8023   +0.0336  +0.0446    YES
+HateMM      0.8047/0.7930  0.8465/0.8362   +0.0419  +0.0432    YES
+strict_beat_all = True
+```
+
+Caveats:
+- vLLM bf16 batch reduction-order non-determinism means rerunning
+  Step B may produce slightly different deltas (~10% verdict drift
+  observed). The `*_v2_winning.jsonl` artifacts in
+  `results/boundary_rescue/{ds}/` are the locked canonical reference.
+- Steps 0/A/C are deterministic on CPU. Only Step B is GPU-bound
+  and the only source of non-determinism.
+- Dataset paths and `SKIP_VIDEOS` are defined in
+  `src/our_method/data_utils.py`. Eight ZH videos are skipped
+  unconditionally (vLLM video decoder failures); evaluation
+  denominators are EN=161, ZH=149, HateMM=215.
 
 ### Artifacts
 
