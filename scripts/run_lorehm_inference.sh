@@ -4,7 +4,7 @@ source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh
 conda activate SafetyContradiction
 cd /data/jehc223/EMNLP2
 
-export HUGGING_FACE_HUB_TOKEN=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
+# HF token: set HUGGING_FACE_HUB_TOKEN in your env or ~/.cache/huggingface/token
 
 # LoReHM bf16 full inference across 4 datasets.
 # 2-GPU sbatch: loads llava-v1.6-34b-hf at bf16 via device_map="auto"

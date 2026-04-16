@@ -4,7 +4,7 @@ source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh
 conda activate lavis_baselines
 cd /data/jehc223/EMNLP2
 
-export HUGGING_FACE_HUB_TOKEN=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
+# HF token: set HUGGING_FACE_HUB_TOKEN in your env or ~/.cache/huggingface/token
 
 # Pro-Cap LAVIS 8-frame variant — BOTH test and train splits, 4 datasets each
 # test split serves as the standalone baseline row

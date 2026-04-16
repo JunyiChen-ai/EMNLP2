@@ -4,7 +4,7 @@ source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh
 conda activate SafetyContradiction
 cd /data/jehc223/EMNLP2
 
-export HUGGING_FACE_HUB_TOKEN=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
+# HF token: set HUGGING_FACE_HUB_TOKEN in your env or ~/.cache/huggingface/token
 
 # Pro-Cap V3 Qwen2-VL-7B 16-frame multi-image caption generation.
 # Runs test split first (needed for test prediction), then train split
