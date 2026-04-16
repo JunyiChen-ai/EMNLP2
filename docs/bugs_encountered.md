@@ -198,3 +198,40 @@ Then rerun stage 3 for MHClip_ZH only.
 
 **Impact**: MHClip_ZH MATCH accuracy artificially low. EN/HateMM/ImpliHateVid unaffected (already use correct encoder).
 
+---
+
+## Bug 5: vLLM 0.11.0 does not support video content type for LLaVA-Next and Gemma-3
+
+**Affected**: Naive baselines — `llava-hf/llava-v1.6-mistral-7b-hf` and `google/gemma-3-12b-it`
+
+**Environment**:
+- vLLM 0.11.0
+- SafetyContradiction conda env
+- Both models loaded via `LLM()` with video input
+
+**Reproduction**:
+```python
+from vllm import LLM
+
+llm = LLM(model="llava-hf/llava-v1.6-mistral-7b-hf", ...)
+# OR
+llm = LLM(model="google/gemma-3-12b-it", ...)
+
+# Pass video content:
+content = [{"type": "video", "video": {"path": "/path/to/video.mp4"}}]
+messages = [{"role": "user", "content": content + [{"type": "text", "text": "..."}]}]
+out = llm.chat(messages=messages, ...)
+```
+
+**Symptom**:
+```
+At most 0 video(s) may be provided in one prompt.
+```
+Every single video in all 4 datasets produces this error. 100% failure rate — zero valid predictions.
+
+**Root cause**: vLLM 0.11.0's model registry for LLaVA-Next-Mistral-7B and Gemma-3-12B does not register video as a supported modality. These models' vLLM adapters only support `image` content type, not `video`. The `limit_mm_per_prompt` for video is hard-capped at 0 by the model config.
+
+**Workaround (not yet implemented)**: Frame-based fallback — extract N frames from each video as JPGs, pass as multi-image input instead of video. Requires rewriting the naive baseline script to use `{"type": "image"}` content entries instead of `{"type": "video"}`. Deprioritized per user directive (ablation sidebar, not headline comparison).
+
+**Impact**: LLaVA-Next-Mistral-7B and Gemma-3-12B naive baselines are completely missing from the results table. Only Qwen3-VL-2B and InternVL3-8B naive baselines have valid results (these models support video natively in vLLM).
+
