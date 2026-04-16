@@ -83,8 +83,8 @@ from data_utils import DATASET_ROOTS, get_media_path, load_annotations  # noqa: 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
 ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
 NUM_FRAMES = 16  # MARS default, paper says stable at 8/16/32
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
-OUTPUT_SUBDIR = "mars_7b"
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-32B-Instruct-AWQ"
+OUTPUT_SUBDIR = "mars_32b_awq"
 
 
 # ============================================================================
@@ -297,24 +297,26 @@ def extract_stage4_label_from_text(raw_text: str) -> Optional[int]:
 # ============================================================================
 
 def sample_frames(media_path: str, media_type: str, num_frames: int = NUM_FRAMES):
-    """Collect up to num_frames image URLs uniformly sampled, matching
+    """Load up to num_frames PIL images uniformly sampled, matching
     MARS.sample_frames which uses step = total_frames / num_frames indexing.
 
-    Deviation #14 (2026-04-16): for media_type=="video", previous versions
-    passed the raw mp4 URL and let vLLM do its own sampling. This hung
-    vLLM 0.11.0 on Qwen2.5-VL prefill indefinitely. Now we always use
-    pre-extracted `frames_16/<vid>/frame_NNN.jpg` instead, matching the
-    Pro-Cap V3 + MATCH stage 2 path that is known to work.
+    Returns a list of PIL.Image (RGB). Uses pre-extracted frames_16/
+    directories to avoid the vLLM 0.11.0 llm.chat() hang on Qwen2.5-VL
+    with multi-image image_url input.
     """
+    from PIL import Image, ImageFile
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+
     if media_type == "video":
         vid = os.path.basename(media_path).rsplit(".", 1)[0]
         parent = os.path.dirname(media_path)
-        root = os.path.dirname(parent) if os.path.basename(parent) == "video" else parent
+        root = os.path.dirname(parent) if os.path.basename(parent) in ("video", "video_mp4") else parent
         frame_dir = os.path.join(root, "frames_16", vid)
         if os.path.isdir(frame_dir):
-            media_path = frame_dir  # fall through to the image-dir branch
+            media_path = frame_dir
         else:
-            return [{"type": "video_url", "video_url": {"url": f"file://{media_path}"}}]
+            logging.warning(f"  No pre-extracted frames at {frame_dir}")
+            return []
     jpgs = sorted(glob.glob(os.path.join(media_path, "*.jpg")) +
                   glob.glob(os.path.join(media_path, "*.jpeg")) +
                   glob.glob(os.path.join(media_path, "*.png")))
@@ -326,16 +328,19 @@ def sample_frames(media_path: str, media_type: str, num_frames: int = NUM_FRAMES
         step = len(jpgs) / num_frames
         indices = [int(i * step) for i in range(num_frames)]
         selected = [jpgs[i] for i in indices]
-    return [{"type": "image_url", "image_url": {"url": f"file://{p}"}} for p in selected]
+    return [Image.open(p).convert("RGB") for p in selected]
 
 
-def build_user_message(media_content, prompt_text: str):
-    """Single-turn user message. MARS uses a fresh conversation per stage,
-    so every call is a standalone user turn with images + text."""
-    return [{
-        "role": "user",
-        "content": media_content + [{"type": "text", "text": prompt_text}],
-    }]
+def build_prompt_text(processor, n_images: int, prompt_text: str) -> str:
+    """Build a tokenized prompt string via the processor's chat template.
+    MARS uses a fresh conversation per stage, so every call is a
+    standalone user turn with image placeholders + text."""
+    content = [{"type": "image"} for _ in range(n_images)]
+    content.append({"type": "text", "text": prompt_text})
+    messages = [{"role": "user", "content": content}]
+    return processor.apply_chat_template(
+        messages, add_generation_prompt=True, tokenize=False
+    )
 
 
 def extract_final_label(stage4_parsed) -> Optional[int]:
@@ -384,29 +389,32 @@ def load_split_ids(dataset: str, split: str):
         return [line.strip() for line in f if line.strip()]
 
 
-def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_params) -> Dict:
+def mars_one_video(vid: str, transcript: str, pil_frames, llm, processor, sampling_params) -> Dict:
     """Run the 4-stage MARS pipeline on a single video. Each stage is an
     independent vLLM call with the same images + a fresh user prompt.
+    Uses llm.generate() with multi_modal_data to avoid the vLLM 0.11.0
+    llm.chat() hang on Qwen2.5-VL multi-image input.
     """
     turn_outputs = {}
+    n_img = len(pil_frames)
 
     p1 = append_transcript(MARS_TURN_1, transcript)
-    msg1 = build_user_message(media_content, p1)
-    out1 = llm.chat(messages=[msg1], sampling_params=sampling_params)
+    prompt1 = build_prompt_text(processor, n_img, p1)
+    out1 = llm.generate({"prompt": prompt1, "multi_modal_data": {"image": pil_frames}}, sampling_params=sampling_params)
     raw1 = out1[0].outputs[0].text
     parsed1, ok1 = clean_json_response(raw1, default_key="objective_visual_description")
     turn_outputs["turn_1"] = {"raw": raw1, "parsed": parsed1 if ok1 else None, "parse_ok": ok1}
 
     p2 = append_transcript(MARS_TURN_2, transcript)
-    msg2 = build_user_message(media_content, p2)
-    out2 = llm.chat(messages=[msg2], sampling_params=sampling_params)
+    prompt2 = build_prompt_text(processor, n_img, p2)
+    out2 = llm.generate({"prompt": prompt2, "multi_modal_data": {"image": pil_frames}}, sampling_params=sampling_params)
     raw2 = out2[0].outputs[0].text
     parsed2, ok2 = clean_json_response(raw2, default_key="evidence")
     turn_outputs["turn_2"] = {"raw": raw2, "parsed": parsed2 if ok2 else None, "parse_ok": ok2}
 
     p3 = append_transcript(MARS_TURN_3, transcript)
-    msg3 = build_user_message(media_content, p3)
-    out3 = llm.chat(messages=[msg3], sampling_params=sampling_params)
+    prompt3 = build_prompt_text(processor, n_img, p3)
+    out3 = llm.generate({"prompt": prompt3, "multi_modal_data": {"image": pil_frames}}, sampling_params=sampling_params)
     raw3 = out3[0].outputs[0].text
     parsed3, ok3 = clean_json_response(raw3, default_key="evidence")
     turn_outputs["turn_3"] = {"raw": raw3, "parsed": parsed3 if ok3 else None, "parse_ok": ok3}
@@ -417,8 +425,8 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
         turn_outputs["turn_3"]["parsed"],
     )
     p4 = append_transcript(p4_base, transcript)
-    msg4 = build_user_message(media_content, p4)
-    out4 = llm.chat(messages=[msg4], sampling_params=sampling_params)
+    prompt4 = build_prompt_text(processor, n_img, p4)
+    out4 = llm.generate({"prompt": prompt4, "multi_modal_data": {"image": pil_frames}}, sampling_params=sampling_params)
     raw4 = out4[0].outputs[0].text
     parsed4, ok4 = clean_json_response(raw4)
     turn_outputs["turn_4"] = {"raw": raw4, "parsed": parsed4 if ok4 else None, "parse_ok": ok4}
@@ -444,7 +452,7 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
     return rec
 
 
-def score_dataset(dataset: str, split: str, llm, sampling_params):
+def score_dataset(dataset: str, split: str, llm, processor, sampling_params):
     annotations = load_annotations(dataset)
     split_ids = load_split_ids(dataset, split)
     logging.info(f"[{dataset}] {len(split_ids)} videos in {split}_clean")
@@ -487,7 +495,7 @@ def score_dataset(dataset: str, split: str, llm, sampling_params):
                 continue
 
             try:
-                rec = mars_one_video(vid, transcript, media_content, llm, sampling_params)
+                rec = mars_one_video(vid, transcript, media_content, llm, processor, sampling_params)
             except Exception as e:
                 err = str(e)
                 logging.error(f"  {vid}: MARS pipeline failed: {err[:200]}")
@@ -540,25 +548,17 @@ def main():
     logging.info(f"MARS 32B-AWQ reproduction: datasets={datasets} split={args.split} "
                  f"model={args.model} seed={args.seed} frames={NUM_FRAMES}")
 
+    from transformers import AutoProcessor
     from vllm import LLM, SamplingParams
+
+    processor = AutoProcessor.from_pretrained(args.model, trust_remote_code=True)
     llm = LLM(
         model=args.model,
         trust_remote_code=True,
-        gpu_memory_utilization=0.92,
-        # Deviation #11: max_model_len bumped from 40960 -> 65536 for the
-        # 32B-AWQ run. 32B-AWQ encoder over 16 frames + 4-stage prompts
-        # exceeded 40960 (43328 observed on MHClip_EN tOsD1F--EEo). Same
-        # weights/tokens, budget bump only.
+        gpu_memory_utilization=0.88,
         max_model_len=65536,
-        limit_mm_per_prompt={"image": NUM_FRAMES, "video": 1},
-        allowed_local_media_path="/data/jehc223",
-        # Deviation #12: max_pixels reduced 100352 -> 32768 after the
-        # original setting stalled vLLM prefill on 32B-AWQ for >2h on
-        # MHClip_EN (8499). Qwen2.5-VL docs recommend ~32k for video.
+        limit_mm_per_prompt={"image": NUM_FRAMES},
         mm_processor_kwargs={"max_pixels": 32768},
-        # Deviation #13: enforce_eager=True to skip torch.compile which
-        # interacts poorly with awq_marlin kernels on 32B and masked the
-        # hang as a decode stall.
         enforce_eager=True,
         seed=args.seed,
     )
@@ -573,7 +573,7 @@ def main():
     )
 
     for ds in datasets:
-        score_dataset(ds, args.split, llm, sampling_params)
+        score_dataset(ds, args.split, llm, processor, sampling_params)
 
     logging.info("All datasets done.")
 

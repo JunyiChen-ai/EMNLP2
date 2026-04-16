@@ -51,3 +51,5 @@ scripts/*.sbatch
 
 # State files (machine-specific)
 TARGET_LOOP_STATE.json
+external_repos/
+external_repos/

@@ -1,22 +1,13 @@
-"""LoReHM multi-image runner — rewritten 2026-04-16 to use Qwen2-VL-7B.
+"""LoReHM multi-image runner — Qwen2.5-VL-32B-Instruct-AWQ via vLLM.
 
-Background: the original plan was to use `llava-hf/llava-v1.6-34b-hf`
-as the LoReHM backbone at bf16 across 2 GPUs, with 16 multi-image
-inputs per call. Multiple attempts (grid_pinpoints=None, =[], =[[336,336]],
-pre-resized inputs, manual image_sizes) all failed because LLaVA-Next is
-fundamentally a single-image anyres model — its processor always
-produces a mismatched number of image features relative to the 16
-`<image>` tokens in the prompt (split_sizes errors, grid_pinpoints
-errors, unpack-None errors).
+Background: upstream LoReHM used `llava-v1.6-34b` (single-image meme
+model). LLaVA-Next doesn't support multi-image input (anyres patch
+mismatch — see docs/bugs_encountered.md Bug 2). We substitute
+Qwen2.5-VL-32B-Instruct-AWQ (comparable 32B scale, native multi-image
+support, AWQ 4-bit fits single A100 80GB via vLLM).
 
-Pragmatic pivot: switch the backbone to **Qwen/Qwen2-VL-7B-Instruct**
-via vLLM. Qwen2-VL natively supports multi-image input (Pro-Cap V3's
-captioner and MATCH stage 2c use the same model successfully), greedy
-decoding is fast, and the chat template expands image placeholders
-correctly. This is a documented fidelity deviation from upstream
-LoReHM (which used `llava-v1.6-34b` for meme images) and from our own
-earlier plan. The RSA / MIA / parse_answer / control flow are
-unchanged.
+Uses llm.generate() with multi_modal_data to avoid the vLLM 0.11.0
+llm.chat() hang on Qwen2.5-VL (docs/bugs_encountered.md Bug 1).
 
 Generation: temperature=0 (greedy), max_tokens=1024.
 """
@@ -25,7 +16,7 @@ import logging
 import os
 from typing import List
 
-DEFAULT_MODEL_ID = "Qwen/Qwen2-VL-7B-Instruct"
+DEFAULT_MODEL_ID = "Qwen/Qwen2.5-VL-32B-Instruct-AWQ"
 NUM_FRAMES = 16
 MAX_TOKENS_DEFAULT = 1024
 
@@ -57,17 +48,18 @@ class LlavaRunner:
         )
         self.llm = LLM(
             model=model_id,
-            max_model_len=16384,
-            gpu_memory_utilization=0.92,
+            max_model_len=65536,
+            gpu_memory_utilization=0.88,
             limit_mm_per_prompt={"image": NUM_FRAMES},
-            mm_processor_kwargs={"max_pixels": 200704},
+            mm_processor_kwargs={"max_pixels": 32768},
             trust_remote_code=True,
+            enforce_eager=True,
         )
         self.sampling = SamplingParams(
             temperature=0.0,
             max_tokens=MAX_TOKENS_DEFAULT,
         )
-        logging.info("Qwen2-VL-7B loaded")
+        logging.info(f"{model_id} loaded")
 
     def _coerce_image_list(self, image_file) -> List:
         from PIL import Image

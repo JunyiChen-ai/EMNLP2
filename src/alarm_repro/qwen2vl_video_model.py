@@ -45,8 +45,27 @@ import base64
 from io import BytesIO
 from typing import List, Optional
 
+# ---------- autoawq compat shim for transformers 4.57.1 ----------
+# autoawq 0.2.9 imports PytorchGELUTanh and shard_checkpoint at module
+# init time; transformers 4.57 removed both. Patch them back as stubs
+# so the import succeeds. Qwen2.5-VL uses SwiGLU (not GELU-tanh) and
+# we only load (never save), so neither stub is ever called at runtime.
+import transformers.activations
+import transformers.modeling_utils
 
-DEFAULT_MODEL_ID = "Qwen/Qwen2.5-VL-7B-Instruct"  # downgraded 2026-04-16: autoawq is incompatible with transformers 4.57.1 (PytorchGELUTanh / shard_checkpoint removed), breaking the 72B-AWQ load path. 7B at bf16 fits one 80GB A100 cleanly.
+if not hasattr(transformers.activations, "PytorchGELUTanh"):
+    import torch.nn as _nn
+    class _PytorchGELUTanh(_nn.Module):
+        def forward(self, x):
+            import torch
+            return torch.nn.functional.gelu(x, approximate="tanh")
+    transformers.activations.PytorchGELUTanh = _PytorchGELUTanh
+
+if not hasattr(transformers.modeling_utils, "shard_checkpoint"):
+    transformers.modeling_utils.shard_checkpoint = lambda *a, **k: ({}, None)
+# -----------------------------------------------------------------
+
+DEFAULT_MODEL_ID = "Qwen/Qwen2.5-VL-72B-Instruct-AWQ"
 
 
 def resize_image(image, max_size=640):
@@ -106,8 +125,8 @@ class Qwen2VLVideoModel:
         # as Deviation #6 in the README.
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_id,
-            torch_dtype="auto",
-            device_map="cuda",
+            torch_dtype=torch.float16,
+            device_map="auto",
             attn_implementation="sdpa",
             low_cpu_mem_usage=True,
         )

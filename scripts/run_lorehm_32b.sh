@@ -3,4 +3,4 @@ set -e
 source /data/jehc223/home/miniconda3/etc/profile.d/conda.sh
 conda activate SafetyContradiction
 cd /data/jehc223/EMNLP2
-python src/mars_repro/reproduce_mars_32b_awq.py --all --split test
+python src/lorehm_repro/reproduce_lorehm.py --all
