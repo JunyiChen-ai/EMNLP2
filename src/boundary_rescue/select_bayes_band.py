@@ -35,7 +35,7 @@ from eval_generative_predictions import collapse_label  # noqa: E402
 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
 OUT_ROOT = os.path.join(PROJECT_ROOT, "results", "boundary_rescue")
-ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM"]
+ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
 
 
 def to_logit(scores, eps=1e-6):
@@ -225,6 +225,9 @@ def main():
     )
     print("-" * 130)
     for ds in ALL_DATASETS:
+        if ds not in v2_baseline:
+            print(f"[skip] {ds}: not in v2_baseline.json")
+            continue
         d = select_bayes_band(ds, args.mode, v2_baseline, args.mass)
         diags.append(d)
         print(

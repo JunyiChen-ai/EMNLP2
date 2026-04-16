@@ -14,12 +14,14 @@ DATASET_ROOTS = {
     "MHClip_EN": "/data/jehc223/Multihateclip/English",
     "MHClip_ZH": "/data/jehc223/Multihateclip/Chinese",
     "HateMM": "/data/jehc223/HateMM",
+    "ImpliHateVid": "/data/jehc223/ImpliHateVid",
 }
 
 MP4_SUBDIRS = {
     "MHClip_EN": "video_mp4",
     "MHClip_ZH": "video",
     "HateMM": "video",
+    "ImpliHateVid": "video",
 }
 
 # Videos to unconditionally skip across every scoring pipeline. These 8
@@ -42,6 +44,7 @@ SKIP_VIDEOS = {
         "BV1bA41137we",
     },
     "HateMM": set(),
+    "ImpliHateVid": set(),
 }
 
 
@@ -145,6 +148,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.generate_splits:
-        for ds in ["MHClip_EN", "MHClip_ZH"]:
+        for ds in ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]:
             print(f"\n=== {ds} ===")
             generate_clean_splits(ds)

@@ -55,6 +55,12 @@ PROTOCOL = {
         "criterion_fn": li_lee_threshold,
         "protocol": "TF-li_lee",
     },
+    "ImpliHateVid": {
+        "fit_source": "train",
+        "criterion_name": "gmm",
+        "criterion_fn": gmm_threshold,
+        "protocol": "TR-GMM",
+    },
 }
 
 TRAIN_SCORE_FILES = {
@@ -65,6 +71,9 @@ TRAIN_SCORE_FILES = {
         PROJECT_ROOT, "results", "holistic_2b", "MHClip_ZH", "train_binary.jsonl"
     ),
     # HateMM: no train scores; HateMM uses TF
+    "ImpliHateVid": os.path.join(
+        PROJECT_ROOT, "results", "holistic_2b", "ImpliHateVid", "train_binary.jsonl"
+    ),
 }
 
 TEST_SCORE_FILES = {
@@ -80,6 +89,9 @@ TEST_SCORE_FILES = {
     ),
     "HateMM": os.path.join(
         PROJECT_ROOT, "results", "holistic_2b", "HateMM", "test_binary.jsonl"
+    ),
+    "ImpliHateVid": os.path.join(
+        PROJECT_ROOT, "results", "holistic_2b", "ImpliHateVid", "test_binary.jsonl"
     ),
 }
 
@@ -196,7 +208,16 @@ def process(dataset):
 
 def main():
     rows = []
-    for ds in ["MHClip_EN", "MHClip_ZH", "HateMM"]:
+    all_datasets = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
+    for ds in all_datasets:
+        # Skip datasets whose dependency files don't exist yet.
+        proto = PROTOCOL[ds]
+        if proto["fit_source"] == "train" and not os.path.isfile(TRAIN_SCORE_FILES[ds]):
+            print(f"[skip] {ds}: train score file not yet available")
+            continue
+        if not os.path.isfile(TEST_SCORE_FILES[ds]):
+            print(f"[skip] {ds}: test score file not yet available")
+            continue
         rows.append(process(ds))
 
     # Print sanity table

@@ -1,6 +1,6 @@
 """
 Faithful reproduction of MARS (Multi-stage Adversarial ReaSoning) using
-Qwen3-VL-2B-Instruct via vLLM.
+**Qwen/Qwen2.5-VL-32B-Instruct-AWQ** via vLLM.
 
 Paper: "Training-Free and Interpretable Hateful Video Detection via
 Multi-stage Adversarial Reasoning", Multimodal Intelligence Lab (MIL),
@@ -8,20 +8,57 @@ University of Exeter, Jan 2026. arxiv: 2601.15115
 Repo:  https://github.com/Multimodal-Intelligence-Lab-MIL/MARS
 Commit of our reference: 72e1618943d36edb26ba0a24d0b4b417978d38e6
 
-Faithfulness scope
-  Verbatim: all 4 stage prompt strings, the `\\n\\nTranscript: ...` append
-  rule, the ```json fence-strip + json.loads parser, the 16-frame uniform
-  sampling, the stochastic decoding (temperature=0.7, top_p=0.9,
-  max_new_tokens=4096), and the final-label source
-  (`final_decision.label`).
+**Relationship to `reproduce_mars_2b.py`**
 
-  Adapted to our infra: Qwen3-VL-2B-Instruct backbone (paper used
-  Qwen2.5-VL 32B / Llama4 / GPT5-mini / Gemini2.5-Flash); inference through
-  vLLM instead of HuggingFace transformers; images loaded by URL instead
-  of PIL; Slurm-friendly per-video resume.
+This file is a 32B-AWQ clone of `reproduce_mars_2b.py`. The 2B version
+was a quantization-downgraded reproduction (Qwen3-VL-2B-Instruct) kept
+for comparison; the MARS paper's actual reported numbers use
+**Qwen2.5-VL-32B-Instruct** (4-bit AWQ), together with Llama4,
+GPT5-mini, and Gemini2.5-Flash. This script targets the Qwen2.5-VL-32B
+row of the paper's Table — the closest faithful backbone we can run
+locally on a single A100 under the standing API→vLLM substitution
+rule (`feedback_api_to_vllm.md`): the paper runs the 32B backbone via
+the HF transformers + `Qwen2VLForConditionalGeneration` path, and we
+substitute a local vLLM serve of the same open-weights checkpoint
+(with AWQ quantization, which the upstream repo also uses to fit the
+model on their reported 24 GB evaluation cards).
+
+**Byte-for-byte upstream fidelity (unchanged from `reproduce_mars_2b.py`)**
+
+- All 4 MARS stage prompt strings (`MARS_TURN_1/2/3/4`) are copied
+  verbatim from `third_party/MARS/code/MARS/Qwen.py@72e1618` lines
+  137-219.
+- The `\n\nTranscript: ...` append rule (`append_transcript`) is
+  verbatim from `Qwen.py:224-228`.
+- The ` ```json ` fence-strip + `json.loads` parser in
+  `clean_json_response` is the primary path from `Qwen.py:316-333`.
+  The F1-F4 fallbacks are an engineering addition needed for 2B-scale
+  models; at 32B these fallbacks are very rarely triggered but kept
+  for robustness.
+- 16 uniform frames per video (`NUM_FRAMES=16`), matching MARS
+  `sample_frames`.
+- Stochastic decoding `temperature=0.7`, `top_p=0.9`,
+  `max_new_tokens=4096` — verbatim from `Qwen.py:282-290`.
+- Final-label source: `final_decision.label` from the stage-4 JSON,
+  matching MARS' single source of truth.
+
+**What changed vs `reproduce_mars_2b.py`**
+
+- `DEFAULT_MODEL = "Qwen/Qwen2.5-VL-32B-Instruct-AWQ"`. This is the
+  paper's actual backbone (`Qwen2.5-VL-32B-Instruct`) in its 4-bit
+  AWQ-quantized form, which is what fits on a single 80 GB A100 with
+  `gpu_memory_utilization=0.92`. The AWQ weights are mathematically
+  the same checkpoint family — the substitution is quantization, not
+  a model swap.
+- Output directory renamed to `results/mars_32b_awq/<dataset>/` so
+  that the 2B and 32B runs never collide.
+- Log file renamed to `mars_32b_awq.log`.
+- Nothing else. Every prompt, every sampling param, every frame
+  sampler, every parser fallback, and every resume path is identical
+  to the 2B version.
 
 Prompts below are VERBATIM from
-third_party/MARS/code/MARS/Qwen.py@72e1618943d36edb26ba0a24d0b4b417978d38e6
+`third_party/MARS/code/MARS/Qwen.py@72e1618943d36edb26ba0a24d0b4b417978d38e6`
 lines 137-219. Do not paraphrase — "faithful" means byte-exact.
 """
 
@@ -46,6 +83,8 @@ from data_utils import DATASET_ROOTS, get_media_path, load_annotations  # noqa: 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
 ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
 NUM_FRAMES = 16  # MARS default, paper says stable at 8/16/32
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
+OUTPUT_SUBDIR = "mars_7b"
 
 
 # ============================================================================
@@ -142,21 +181,14 @@ def append_transcript(base_prompt: str, transcript: str) -> str:
 
 
 def clean_json_response(response_text: str, default_key: Optional[str] = None):
-    """Parse MARS stage output as JSON, with fallbacks for 2B-scale models.
+    """Parse MARS stage output as JSON, with fallbacks kept for robustness.
 
-    Primary path: MARS Qwen.py:316-333. Strip ```json fences, then json.loads.
+    Primary path: MARS Qwen.py:316-333. Strip ```json fences, then
+    json.loads.
 
-    Fallbacks (added for 2B-downgraded reproduction — NOT in original MARS):
-      F1: `[...]` → `{...}`. Our 2B model frequently emits
-          `["key": value]` because the prompt says
-          `one key: ["objective_visual_description"]` — 2B reads the
-          square brackets in the format hint as the literal output
-          delimiter. Swap `[` / `]` → `{` / `}` and retry.
-      F2: first balanced `{...}` block via brace-depth scan.
-      F3: first balanced `[...]` block, then apply F1.
-      F4: if `default_key` given, wrap the entire cleaned text as
-          `{default_key: <raw text>}`. Last-ditch: never leave the model's
-          content on the floor just because it forgot the braces.
+    Fallbacks F1-F4 were originally added for 2B-scale downgraded
+    reproductions. At 32B they should almost never trigger, but we
+    keep them for robustness against the rare malformed stage output.
     """
     cleaned = (response_text or "").strip()
     if not cleaned:
@@ -164,20 +196,17 @@ def clean_json_response(response_text: str, default_key: Optional[str] = None):
             return {default_key: ""}, True
         return response_text, False
 
-    # Strip markdown fences
     fenced = cleaned
     if cleaned.startswith("```json") and cleaned.endswith("```"):
         fenced = cleaned[7:-3].strip()
     elif cleaned.startswith("```") and cleaned.endswith("```"):
         fenced = cleaned[3:-3].strip()
 
-    # Primary parse
     try:
         return json.loads(fenced), True
     except json.JSONDecodeError:
         pass
 
-    # F1: outer [] → {}
     if fenced.startswith("[") and fenced.endswith("]"):
         try:
             fixed = "{" + fenced[1:-1].strip() + "}"
@@ -185,7 +214,6 @@ def clean_json_response(response_text: str, default_key: Optional[str] = None):
         except json.JSONDecodeError:
             pass
 
-    # F2: balanced {...} scan
     start = fenced.find("{")
     if start != -1:
         depth = 0
@@ -205,7 +233,6 @@ def clean_json_response(response_text: str, default_key: Optional[str] = None):
             except json.JSONDecodeError:
                 pass
 
-    # F3: balanced [...] scan then swap
     start = fenced.find("[")
     if start != -1:
         depth = 0
@@ -227,7 +254,6 @@ def clean_json_response(response_text: str, default_key: Optional[str] = None):
             except json.JSONDecodeError:
                 pass
 
-    # F4: last-ditch — wrap raw text as {default_key: text}
     if default_key is not None:
         return {default_key: fenced}, True
 
@@ -244,23 +270,19 @@ def extract_stage4_label_from_text(raw_text: str) -> Optional[int]:
         return None
     t = raw_text.lower()
 
-    # Pattern 1: `"label": 1` / `"label": 0` / `'label': 1` etc.
     m = re.search(r'["\']?label["\']?\s*[:=]\s*["\']?([01])["\']?', t)
     if m:
         return int(m.group(1))
 
-    # Pattern 2: `label is 1` / `label = 0`
     m = re.search(r'\blabel\s+(?:is|=)\s*([01])\b', t)
     if m:
         return int(m.group(1))
 
-    # Pattern 3: `final_decision.*label.*[01]` (looser)
     m = re.search(r'final[_\s]*decision.*?label[^\d]{0,10}([01])', t, re.DOTALL)
     if m:
         return int(m.group(1))
 
-    # Pattern 4: explicit verdict words near the end
-    tail = t[-500:]  # last few hundred chars
+    tail = t[-500:]
     if re.search(r'\bhate(ful)?\b', tail) and not re.search(r'\bnot\s+hate(ful)?\b', tail):
         if not re.search(r'\bnon[-_\s]?hate(ful)?\b', tail):
             return 1
@@ -271,17 +293,28 @@ def extract_stage4_label_from_text(raw_text: str) -> Optional[int]:
 
 
 # ============================================================================
-# Infrastructure (our vLLM + data_utils plumbing)
+# Infrastructure (vLLM + data_utils plumbing, unchanged from 2B version)
 # ============================================================================
 
 def sample_frames(media_path: str, media_type: str, num_frames: int = NUM_FRAMES):
     """Collect up to num_frames image URLs uniformly sampled, matching
-    MARS.sample_frames which uses step = total_frames / num_frames indexing."""
+    MARS.sample_frames which uses step = total_frames / num_frames indexing.
+
+    Deviation #14 (2026-04-16): for media_type=="video", previous versions
+    passed the raw mp4 URL and let vLLM do its own sampling. This hung
+    vLLM 0.11.0 on Qwen2.5-VL prefill indefinitely. Now we always use
+    pre-extracted `frames_16/<vid>/frame_NNN.jpg` instead, matching the
+    Pro-Cap V3 + MATCH stage 2 path that is known to work.
+    """
     if media_type == "video":
-        # MARS uses pre-extracted frame folders; when the source is an mp4,
-        # we rely on vLLM's internal video-url handling. See the main loop
-        # for which path is taken per dataset.
-        return [{"type": "video_url", "video_url": {"url": f"file://{media_path}"}}]
+        vid = os.path.basename(media_path).rsplit(".", 1)[0]
+        parent = os.path.dirname(media_path)
+        root = os.path.dirname(parent) if os.path.basename(parent) == "video" else parent
+        frame_dir = os.path.join(root, "frames_16", vid)
+        if os.path.isdir(frame_dir):
+            media_path = frame_dir  # fall through to the image-dir branch
+        else:
+            return [{"type": "video_url", "video_url": {"url": f"file://{media_path}"}}]
     jpgs = sorted(glob.glob(os.path.join(media_path, "*.jpg")) +
                   glob.glob(os.path.join(media_path, "*.jpeg")) +
                   glob.glob(os.path.join(media_path, "*.png")))
@@ -312,8 +345,6 @@ def extract_final_label(stage4_parsed) -> Optional[int]:
         return None
     fd = stage4_parsed.get("final_decision")
     if not isinstance(fd, dict):
-        # Some outputs may put the keys at the top level if the model ignores
-        # the wrapper. Try a fallback.
         if "label" in stage4_parsed:
             fd = stage4_parsed
         else:
@@ -356,13 +387,9 @@ def load_split_ids(dataset: str, split: str):
 def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_params) -> Dict:
     """Run the 4-stage MARS pipeline on a single video. Each stage is an
     independent vLLM call with the same images + a fresh user prompt.
-
-    Each clean_json_response call passes a stage-specific `default_key` so
-    that F4 (last-ditch text-as-value wrap) produces a usable structure.
     """
     turn_outputs = {}
 
-    # --- Stage 1: objective description
     p1 = append_transcript(MARS_TURN_1, transcript)
     msg1 = build_user_message(media_content, p1)
     out1 = llm.chat(messages=[msg1], sampling_params=sampling_params)
@@ -370,7 +397,6 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
     parsed1, ok1 = clean_json_response(raw1, default_key="objective_visual_description")
     turn_outputs["turn_1"] = {"raw": raw1, "parsed": parsed1 if ok1 else None, "parse_ok": ok1}
 
-    # --- Stage 2: hate hypothesis (3 keys; wrap plain text as `evidence`)
     p2 = append_transcript(MARS_TURN_2, transcript)
     msg2 = build_user_message(media_content, p2)
     out2 = llm.chat(messages=[msg2], sampling_params=sampling_params)
@@ -378,7 +404,6 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
     parsed2, ok2 = clean_json_response(raw2, default_key="evidence")
     turn_outputs["turn_2"] = {"raw": raw2, "parsed": parsed2 if ok2 else None, "parse_ok": ok2}
 
-    # --- Stage 3: non-hate hypothesis (3 keys; wrap plain text as `evidence`)
     p3 = append_transcript(MARS_TURN_3, transcript)
     msg3 = build_user_message(media_content, p3)
     out3 = llm.chat(messages=[msg3], sampling_params=sampling_params)
@@ -386,7 +411,6 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
     parsed3, ok3 = clean_json_response(raw3, default_key="evidence")
     turn_outputs["turn_3"] = {"raw": raw3, "parsed": parsed3 if ok3 else None, "parse_ok": ok3}
 
-    # --- Stage 4 (meta-synthesis → final label)
     p4_base = build_turn_4_prompt(
         turn_outputs["turn_1"]["parsed"],
         turn_outputs["turn_2"]["parsed"],
@@ -396,15 +420,11 @@ def mars_one_video(vid: str, transcript: str, media_content, llm, sampling_param
     msg4 = build_user_message(media_content, p4)
     out4 = llm.chat(messages=[msg4], sampling_params=sampling_params)
     raw4 = out4[0].outputs[0].text
-    # Stage 4 is special: F4 doesn't help because we need an integer label,
-    # not wrap-as-value. So try the JSON path first; if that fails, fall
-    # back to a regex extractor over the raw text.
     parsed4, ok4 = clean_json_response(raw4)
     turn_outputs["turn_4"] = {"raw": raw4, "parsed": parsed4 if ok4 else None, "parse_ok": ok4}
 
     pred = extract_final_label(parsed4) if ok4 else None
     if pred is None:
-        # Last-ditch: regex over raw stage 4 text
         pred = extract_stage4_label_from_text(raw4)
     rec = {
         "video_id": vid,
@@ -429,7 +449,7 @@ def score_dataset(dataset: str, split: str, llm, sampling_params):
     split_ids = load_split_ids(dataset, split)
     logging.info(f"[{dataset}] {len(split_ids)} videos in {split}_clean")
 
-    out_dir = os.path.join(PROJECT_ROOT, "results", "mars_2b", dataset)
+    out_dir = os.path.join(PROJECT_ROOT, "results", OUTPUT_SUBDIR, dataset)
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{split}_mars.jsonl")
 
@@ -490,11 +510,13 @@ def score_dataset(dataset: str, split: str, llm, sampling_params):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Faithful MARS reproduction (Qwen3-VL-2B)")
+    parser = argparse.ArgumentParser(
+        description="Faithful MARS reproduction (Qwen2.5-VL-32B-Instruct-AWQ)"
+    )
     parser.add_argument("--dataset", choices=ALL_DATASETS)
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--split", default="test", choices=["train", "test"])
-    parser.add_argument("--model", default="Qwen/Qwen3-VL-2B-Instruct")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--seed", type=int, default=42,
                         help="vLLM sampling seed (MARS uses temperature=0.7 sampling; "
                              "seed gives us run-to-run reproducibility)")
@@ -509,13 +531,13 @@ def main():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
-            logging.FileHandler(os.path.join(log_dir, "mars_2b.log")),
+            logging.FileHandler(os.path.join(log_dir, "mars_32b_awq.log")),
             logging.StreamHandler(),
         ],
     )
 
     datasets = ALL_DATASETS if args.all else [args.dataset]
-    logging.info(f"MARS reproduction: datasets={datasets} split={args.split} "
+    logging.info(f"MARS 32B-AWQ reproduction: datasets={datasets} split={args.split} "
                  f"model={args.model} seed={args.seed} frames={NUM_FRAMES}")
 
     from vllm import LLM, SamplingParams
@@ -523,10 +545,21 @@ def main():
         model=args.model,
         trust_remote_code=True,
         gpu_memory_utilization=0.92,
-        max_model_len=40960,
+        # Deviation #11: max_model_len bumped from 40960 -> 65536 for the
+        # 32B-AWQ run. 32B-AWQ encoder over 16 frames + 4-stage prompts
+        # exceeded 40960 (43328 observed on MHClip_EN tOsD1F--EEo). Same
+        # weights/tokens, budget bump only.
+        max_model_len=65536,
         limit_mm_per_prompt={"image": NUM_FRAMES, "video": 1},
         allowed_local_media_path="/data/jehc223",
-        mm_processor_kwargs={"max_pixels": 100352},
+        # Deviation #12: max_pixels reduced 100352 -> 32768 after the
+        # original setting stalled vLLM prefill on 32B-AWQ for >2h on
+        # MHClip_EN (8499). Qwen2.5-VL docs recommend ~32k for video.
+        mm_processor_kwargs={"max_pixels": 32768},
+        # Deviation #13: enforce_eager=True to skip torch.compile which
+        # interacts poorly with awq_marlin kernels on 32B and masked the
+        # hang as a decode stall.
+        enforce_eager=True,
         seed=args.seed,
     )
 

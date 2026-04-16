@@ -28,6 +28,7 @@ CONSTITUTION_MAP = {
     "MHClip_EN": "youtube",
     "MHClip_ZH": "bilibili",
     "HateMM": "youtube",
+    "ImpliHateVid": "youtube",
 }
 
 YOUTUBE_RULES = """1. Encourage violence against groups based on protected status
@@ -373,7 +374,7 @@ def evaluate_scores(out_path, dataset):
 
 def main():
     parser = argparse.ArgumentParser(description="2B baseline holistic scoring")
-    parser.add_argument("--dataset", required=True, choices=["MHClip_EN", "MHClip_ZH", "HateMM"])
+    parser.add_argument("--dataset", required=True, choices=["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"])
     parser.add_argument("--split", default="test", choices=["train", "test"])
     parser.add_argument("--mode", required=True, choices=["binary", "triclass"])
     parser.add_argument("--model", default="Qwen/Qwen3-VL-2B-Instruct")

@@ -35,7 +35,7 @@ from score_holistic_2b import build_media_content  # noqa: E402
 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
 OUT_ROOT = os.path.join(PROJECT_ROOT, "results", "boundary_rescue")
-ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM"]
+ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
 
 DEFAULT_MODEL = "Qwen/Qwen3-VL-8B-Instruct"
 
@@ -84,7 +84,12 @@ verdict: <one word, exactly "hateful" or "normal", lowercase>"""
 
 
 def get_definition(dataset):
-    return HATEMM_DEF if dataset == "HateMM" else MHCLIP_DEF
+    # ImpliHateVid uses clean binary labels (Hateful vs Normal) with no
+    # offensive middle class — route to the strict group-hate definition,
+    # same as HateMM.
+    if dataset in {"HateMM", "ImpliHateVid"}:
+        return HATEMM_DEF
+    return MHCLIP_DEF
 
 
 def load_candidates(dataset, alpha, candidates_file=None):

@@ -33,7 +33,43 @@ sys.path.insert(0, _OUR_METHOD)
 from data_utils import DATASET_ROOTS, get_media_path, load_annotations  # noqa: E402
 
 PROJECT_ROOT = "/data/jehc223/EMNLP2"
-ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM"]
+ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
+
+
+def output_root_for_model(model_id, override_tag=None):
+    """Pick the output parent directory based on the model ID.
+
+    Defaults to ``results/naive_2b`` for Qwen3-VL-2B (back-compat) and
+    auto-tags other families so results land in
+    ``results/naive_<tag>/<ds>/<split>_naive.jsonl``.
+    """
+    if override_tag:
+        return os.path.join(PROJECT_ROOT, "results", f"naive_{override_tag}")
+    name = model_id.lower()
+    if "qwen3-vl-2b" in name:
+        return os.path.join(PROJECT_ROOT, "results", "naive_2b")
+    if "qwen3-vl-8b" in name:
+        return os.path.join(PROJECT_ROOT, "results", "naive_8b")
+    if "llava-onevision" in name or "llava_onevision" in name:
+        sz = "7b" if "7b" in name else "0.5b" if "0.5b" in name else "unk"
+        return os.path.join(PROJECT_ROOT, "results", f"naive_llava_ov_{sz}")
+    if "internvl3" in name:
+        for sz in ("8b", "14b", "78b", "38b", "2b", "1b"):
+            if sz in name:
+                return os.path.join(PROJECT_ROOT, "results", f"naive_internvl3_{sz}")
+        return os.path.join(PROJECT_ROOT, "results", "naive_internvl3_unk")
+    if "gemma" in name:
+        for sz in ("4b", "12b", "27b"):
+            if sz in name:
+                return os.path.join(PROJECT_ROOT, "results", f"naive_gemma3_vl_{sz}")
+        return os.path.join(PROJECT_ROOT, "results", "naive_gemma3_vl_unk")
+    if "qwen2.5-vl" in name or "qwen2_5-vl" in name:
+        for sz in ("7b", "32b", "72b", "3b"):
+            if sz in name:
+                return os.path.join(PROJECT_ROOT, "results", f"naive_qwen25_vl_{sz}")
+        return os.path.join(PROJECT_ROOT, "results", "naive_qwen25_vl_unk")
+    safe = name.replace("/", "_").replace("-", "_")
+    return os.path.join(PROJECT_ROOT, "results", f"naive_{safe}")
 
 NAIVE_PROMPT = """Is this video hateful?
 Title: {title}
@@ -91,12 +127,12 @@ def resume_done_ids(out_path):
     return done
 
 
-def score_dataset(dataset, split, llm, sampling_params, batch_size, transcript_limit):
+def score_dataset(dataset, split, llm, sampling_params, batch_size, transcript_limit, out_root):
     annotations = load_annotations(dataset)
     split_ids = load_split_ids(dataset, split)
     logging.info(f"[{dataset}] {len(split_ids)} videos in {split}_clean")
 
-    out_dir = os.path.join(PROJECT_ROOT, "results", "naive_2b", dataset)
+    out_dir = os.path.join(out_root, dataset)
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{split}_naive.jsonl")
 
@@ -196,11 +232,15 @@ def score_dataset(dataset, split, llm, sampling_params, batch_size, transcript_l
 def main():
     parser = argparse.ArgumentParser(description="Naive 2B text-output baseline")
     parser.add_argument("--dataset", choices=ALL_DATASETS)
-    parser.add_argument("--all", action="store_true", help="Run all 3 datasets in one vLLM session")
+    parser.add_argument("--all", action="store_true", help="Run every dataset in one vLLM session")
     parser.add_argument("--split", default="test", choices=["train", "test"])
     parser.add_argument("--model", default="Qwen/Qwen3-VL-2B-Instruct")
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--transcript-limit", type=int, default=300)
+    parser.add_argument("--out-tag", default=None,
+                        help="Override output directory tag: "
+                             "results/naive_<tag>/<ds>/<split>_naive.jsonl")
+    parser.add_argument("--max-model-len", type=int, default=32768)
     args = parser.parse_args()
 
     if not args.all and not args.dataset:
@@ -221,19 +261,34 @@ def main():
     logging.info(f"Naive 2B baseline: datasets={datasets} split={args.split} model={args.model}")
 
     from vllm import LLM, SamplingParams
+
+    # mm_processor_kwargs is model-family specific; pass only what the
+    # HF processor accepts to avoid TypeError at init.
+    name_l = args.model.lower()
+    if "qwen" in name_l and ("vl" in name_l or "omni" in name_l):
+        mm_kwargs = {"max_pixels": 100352}
+    elif "internvl" in name_l:
+        mm_kwargs = {"max_dynamic_patch": 4}
+    else:
+        mm_kwargs = {}
+
     llm = LLM(
         model=args.model,
         trust_remote_code=True,
         gpu_memory_utilization=0.92,
-        max_model_len=32768,
+        max_model_len=args.max_model_len,
         limit_mm_per_prompt={"video": 1, "image": 8},
         allowed_local_media_path="/data/jehc223",
-        mm_processor_kwargs={"max_pixels": 100352},
+        mm_processor_kwargs=mm_kwargs,
     )
     sampling_params = SamplingParams(temperature=0, max_tokens=8)
 
+    out_root = output_root_for_model(args.model, args.out_tag)
+    logging.info(f"Output root: {out_root}")
+
     for ds in datasets:
-        score_dataset(ds, args.split, llm, sampling_params, args.batch_size, args.transcript_limit)
+        score_dataset(ds, args.split, llm, sampling_params, args.batch_size,
+                      args.transcript_limit, out_root)
 
     logging.info("All datasets done.")
 

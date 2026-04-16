@@ -27,12 +27,14 @@ _OUR_METHOD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ou
 sys.path.insert(0, _OUR_METHOD)
 from data_utils import load_annotations, SKIP_VIDEOS  # noqa: E402
 
-ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM"]
+ALL_DATASETS = ["MHClip_EN", "MHClip_ZH", "HateMM", "ImpliHateVid"]
 
 
 def collapse_label(dataset, gt_label):
     if dataset == "HateMM":
         return 1 if gt_label == "Hate" else 0
+    if dataset == "ImpliHateVid":
+        return 1 if gt_label == "Hateful" else 0
     return 1 if gt_label in ("Hateful", "Offensive") else 0
 
 
