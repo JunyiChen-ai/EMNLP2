@@ -89,6 +89,12 @@ def run_one_dataset(dataset: str, args, model: Qwen2VLVideoModel):
     # ---------- Stage 2 — Jina-CLIP embeddings (on train) ----------
     if args.do_embed:
         logging.info(f"[{dataset}] Stage 2: make_embeddings on train split")
+        # Flush any pending CUDA errors from Stage 1 and free cache
+        # before loading Jina-CLIP alongside the 72B model.
+        import torch, gc
+        torch.cuda.synchronize()
+        gc.collect()
+        torch.cuda.empty_cache()
         stages.run_make_embeddings(train_items, paths["fea"])
 
     # ---------- Stage 3 — conduct_retrieval ----------

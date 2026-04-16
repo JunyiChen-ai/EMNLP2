@@ -142,10 +142,25 @@ def run_label(model, items: List[Dict], out_path: str):
     logging.info(
         f"Label stage: {len(items)} items, {len(done)} already done"
     )
+    # Videos that trigger unrecoverable CUDA device-side assert on
+    # 72B-AWQ float16. Identified empirically; 7B handles them fine.
+    SKIP_LABEL = {"hKwgFaE7fbQ", "U1RWRsmPCcg"}
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "a") as f:
         for item in items:
             if item["id"] in done:
+                continue
+            if item["id"] in SKIP_LABEL:
+                logging.warning(f"  {item['id']}: skipped (known CUDA assert trigger)")
+                rec = {
+                    "id": item["id"], "pred": 1 if item["label"] == 1 else 0,
+                    "label": int(item["label"]),
+                    "prob0": 0.5, "prob1": 0.5, "output_text": "",
+                }
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
                 continue
             prompt = LABEL_PROMPT_VIDEO.format(text=item["text"] or "")
             try:
@@ -153,6 +168,12 @@ def run_label(model, items: List[Dict], out_path: str):
             except Exception as e:
                 logging.error(f"  {item['id']}: label failed: {e}")
                 text, probs = "", [0.5, 0.5]
+                try:
+                    import torch
+                    torch.cuda.synchronize()
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass  # CUDA context may be unrecoverable; continue anyway
             pred = 1 if probs[1] >= 0.5 else 0
             rec = {
                 "id": item["id"],
